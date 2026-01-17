@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+
+# Android Studio
+.idea/
+*.iml
+
+# Built application files
+*.apk
+*.aab
+
+# Generated files
+bin/
+output/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Kotlin
+*.kotlin_module
