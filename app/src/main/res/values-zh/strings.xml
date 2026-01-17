@@ -34,6 +34,8 @@
     <string name="about_title">关于</string>
     <string name="about_project_label">项目地址</string>
     <string name="about_open_source_title">开源项目</string>
+    <string name="about_ai_title">AI 说明</string>
+    <string name="about_ai_text">本项目在开发过程中使用了 AI 辅助。</string>
     <string name="open_source_androidx">AndroidX（Apache-2.0）</string>
     <string name="open_source_compose">Jetpack Compose（Apache-2.0）</string>
     <string name="open_source_material">Material Components（Apache-2.0）</string>

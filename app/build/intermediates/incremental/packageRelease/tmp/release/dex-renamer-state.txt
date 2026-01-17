@@ -1,4 +1,0 @@
-#Fri Jan 16 23:56:28 AST 2026
-base.0=C\:\\Users\\Edison_jiang\\github\\map_timeline_tool\\map_timeline_tool\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
-path.0=classes.dex
-renamed.0=classes.dex

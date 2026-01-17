@@ -33,6 +33,9 @@ Summary:
 - osmdroid (Apache-2.0)
 - OpenStreetMap data (ODbL, attribution required)
 
+## AI Assistance
+This project was built with the help of AI tools.
+
 ---
 
 # 中文说明
@@ -67,4 +70,7 @@ Map Timeline Tool 是一款离线优先的 Android 手动打点应用，所有�
 - AndroidX / Jetpack Compose / Room / Material Components / Kotlin（Apache-2.0）
 - osmdroid（Apache-2.0）
 - OpenStreetMap 数据（ODbL，需要署名）
+
+## AI 说明
+本项目在开发过程中使用了 AI 辅助。
 

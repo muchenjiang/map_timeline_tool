@@ -43,5 +43,10 @@ fun AboutScreen(onBack: () -> Unit) {
         Text(text = stringResource(R.string.open_source_osmdroid))
         Text(text = stringResource(R.string.open_source_kotlin))
         Text(text = stringResource(R.string.open_source_osm))
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = stringResource(R.string.about_ai_title))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = stringResource(R.string.about_ai_text))
     }
 }
