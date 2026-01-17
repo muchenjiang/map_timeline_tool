@@ -16,17 +16,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = PointRepository(AppDatabase.get(app).pointDao())
     val points = repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun addPoint(note: String, location: Location?) {
+    fun addPoint(title: String, note: String, location: Location?, timestamp: Long) {
         if (location == null) return
         viewModelScope.launch {
             repo.insert(
                 PointEntity(
-                    timestamp = System.currentTimeMillis(),
+                    timestamp = timestamp,
                     latitude = location.latitude,
                     longitude = location.longitude,
-                    note = note.ifBlank { "打点" }
+                    title = title,
+                    note = note
                 )
             )
+        }
+    }
+
+    fun updatePoint(point: PointEntity, title: String, note: String) {
+        viewModelScope.launch {
+            repo.update(point.copy(title = title, note = note))
+        }
+    }
+
+    fun deletePoint(point: PointEntity) {
+        viewModelScope.launch {
+            repo.delete(point)
         }
     }
 

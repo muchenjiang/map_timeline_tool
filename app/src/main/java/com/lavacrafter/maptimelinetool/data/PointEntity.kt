@@ -9,5 +9,6 @@ data class PointEntity(
     val timestamp: Long,
     val latitude: Double,
     val longitude: Double,
+    val title: String,
     val note: String
 )

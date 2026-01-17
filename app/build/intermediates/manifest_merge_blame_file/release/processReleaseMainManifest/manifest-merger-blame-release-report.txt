@@ -1,0 +1,221 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.lavacrafter.maptimelinetool"
+4    android:versionCode="1"
+5    android:versionName="0.1" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+11-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:2:5-78
+11-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:2:22-76
+12    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+12-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:3:5-80
+12-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:3:22-78
+13    <uses-permission android:name="android.permission.INTERNET" />
+13-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:4:5-66
+13-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:4:22-64
+14    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+14-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:5:5-78
+14-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:5:22-76
+15    <uses-permission android:name="android.permission.VIBRATE" />
+15-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:6:5-65
+15-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:6:22-63
+16    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+16-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:7:5-76
+16-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:7:22-74
+17    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+17-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:8:5-76
+17-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:8:22-74
+18    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+18-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:9:5-86
+18-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:9:22-84
+19
+20    <permission
+20-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+21        android:name="com.lavacrafter.maptimelinetool.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+21-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+22        android:protectionLevel="signature" />
+22-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+23
+24    <uses-permission android:name="com.lavacrafter.maptimelinetool.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+24-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+24-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+25
+26    <supports-screens
+26-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:9:5-12:40
+27        android:anyDensity="true"
+27-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:10:9-34
+28        android:largeScreens="true"
+28-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:11:9-36
+29        android:normalScreens="true" />
+29-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:12:9-37
+30
+31    <uses-feature
+31-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:14:5-16:36
+32        android:name="android.hardware.location.network"
+32-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:15:9-57
+33        android:required="false" />
+33-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:16:9-33
+34    <uses-feature
+34-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:17:5-19:36
+35        android:name="android.hardware.location.gps"
+35-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:18:9-53
+36        android:required="false" />
+36-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:19:9-33
+37    <uses-feature
+37-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:20:5-22:36
+38        android:name="android.hardware.telephony"
+38-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:21:9-50
+39        android:required="false" />
+39-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:22:9-33
+40    <uses-feature
+40-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:23:5-25:36
+41        android:name="android.hardware.wifi"
+41-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:24:9-45
+42        android:required="false" />
+42-->[org.osmdroid:osmdroid-android:6.1.18] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a6cb3dd0db27e66907216c5691f8adf6\transformed\jetified-osmdroid-android-6.1.18\AndroidManifest.xml:25:9-33
+43
+44    <application
+44-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:11:5-43:19
+45        android:name="com.lavacrafter.maptimelinetool.MapTimelineApp"
+45-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:12:9-39
+46        android:allowBackup="true"
+46-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:13:9-35
+47        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+47-->[androidx.core:core:1.13.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\8e0a0bff2d388b6446750efdf4a5758f\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+48        android:extractNativeLibs="false"
+49        android:label="@string/app_name"
+49-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:14:9-41
+50        android:theme="@style/Theme.MapTimelineTool" >
+50-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:15:9-53
+51        <provider
+52            android:name="androidx.core.content.FileProvider"
+52-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:17:13-62
+53            android:authorities="com.lavacrafter.maptimelinetool.fileprovider"
+53-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:18:13-64
+54            android:exported="false"
+54-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:19:13-37
+55            android:grantUriPermissions="true" >
+55-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:20:13-47
+56            <meta-data
+56-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:21:13-23:57
+57                android:name="android.support.FILE_PROVIDER_PATHS"
+57-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:22:17-67
+58                android:resource="@xml/provider_paths" />
+58-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:23:17-55
+59        </provider>
+60
+61        <receiver
+61-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:26:9-28:40
+62            android:name="com.lavacrafter.maptimelinetool.notification.QuickAddReceiver"
+62-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:27:13-58
+63            android:exported="false" />
+63-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:28:13-37
+64
+65        <service
+65-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:30:9-33:56
+66            android:name="com.lavacrafter.maptimelinetool.notification.QuickAddService"
+66-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:31:13-57
+67            android:exported="false"
+67-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:32:13-37
+68            android:foregroundServiceType="dataSync" />
+68-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:33:13-53
+69
+70        <activity
+70-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:35:9-42:20
+71            android:name="com.lavacrafter.maptimelinetool.MainActivity"
+71-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:36:13-41
+72            android:exported="true" >
+72-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:37:13-36
+73            <intent-filter>
+73-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:38:13-41:29
+74                <action android:name="android.intent.action.MAIN" />
+74-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:39:17-68
+74-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:39:25-66
+75
+76                <category android:name="android.intent.category.LAUNCHER" />
+76-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:40:17-76
+76-->C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app\src\main\AndroidManifest.xml:40:27-74
+77            </intent-filter>
+78        </activity>
+79
+80        <provider
+80-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+81            android:name="androidx.startup.InitializationProvider"
+81-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+82            android:authorities="com.lavacrafter.maptimelinetool.androidx-startup"
+82-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+83            android:exported="false" >
+83-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
+84            <meta-data
+84-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+85                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+85-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
+86                android:value="androidx.startup" />
+86-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Edison_jiang\.gradle\caches\transforms-4\81de327c2e3d389f25388b00a9ab10d6\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+87            <meta-data
+87-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\Edison_jiang\.gradle\caches\transforms-4\0d778c51b105f30710faf768e65a0a71\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:29:13-31:52
+88                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+88-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\Edison_jiang\.gradle\caches\transforms-4\0d778c51b105f30710faf768e65a0a71\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:30:17-78
+89                android:value="androidx.startup" />
+89-->[androidx.lifecycle:lifecycle-process:2.8.4] C:\Users\Edison_jiang\.gradle\caches\transforms-4\0d778c51b105f30710faf768e65a0a71\transformed\jetified-lifecycle-process-2.8.4\AndroidManifest.xml:31:17-49
+90            <meta-data
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+91                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+92                android:value="androidx.startup" />
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+93        </provider>
+94
+95        <service
+95-->[androidx.room:room-runtime:2.6.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\3eef4d96e4fa45a5f8c6e12621e24ad3\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+96            android:name="androidx.room.MultiInstanceInvalidationService"
+96-->[androidx.room:room-runtime:2.6.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\3eef4d96e4fa45a5f8c6e12621e24ad3\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+97            android:directBootAware="true"
+97-->[androidx.room:room-runtime:2.6.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\3eef4d96e4fa45a5f8c6e12621e24ad3\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+98            android:exported="false" />
+98-->[androidx.room:room-runtime:2.6.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\3eef4d96e4fa45a5f8c6e12621e24ad3\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+99
+100        <receiver
+100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+101            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+102            android:directBootAware="false"
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+103            android:enabled="true"
+103-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+104            android:exported="true"
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+105            android:permission="android.permission.DUMP" >
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+106            <intent-filter>
+106-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+107                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+108            </intent-filter>
+109            <intent-filter>
+109-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+110                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+111            </intent-filter>
+112            <intent-filter>
+112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+113                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+114            </intent-filter>
+115            <intent-filter>
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+116                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\Edison_jiang\.gradle\caches\transforms-4\a36e384492913ba24ae5891b6164429e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+117            </intent-filter>
+118        </receiver>
+119    </application>
+120
+121</manifest>

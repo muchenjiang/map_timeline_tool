@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_add_point">打点</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_center">居中</string>
+    <string name="action_clear_cache">清除地图缓存</string>
+    <string name="action_delete">删除</string>
+    <string name="action_export_csv">导出 CSV</string>
+    <string name="action_save">保存</string>
+    <string name="app_name">地图时间线工具</string>
+    <string name="dialog_note_label">备注（可选）</string>
+    <string name="dialog_title_edit_point">编辑打点</string>
+    <string name="dialog_title_label">名称</string>
+    <string name="dialog_title_new_point">新打点</string>
+    <string name="export_chooser_title">导出 CSV</string>
+    <string name="label_lat_lon">%1$.6f, %2$.6f</string>
+    <string name="label_utc_time">%1$s UTC</string>
+    <string name="notification_channel_desc">通知栏快速打点</string>
+    <string name="notification_channel_name">快速打点</string>
+    <string name="notification_text">点击直接添加打点</string>
+    <string name="notification_title">快速打点</string>
+    <string name="settings_project_label">项目地址</string>
+    <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
+    <string name="settings_theme_label">深色主题</string>
+    <string name="settings_title">设置</string>
+    <string name="tab_list">列表</string>
+    <string name="tab_map">地图</string>
+    <string name="tab_settings">设置</string>
+    <string name="toast_cache_cleared">地图缓存已清除</string>
+    <string name="toast_export_failed">导出失败</string>
+    <string name="toast_location_failed">无法获取定位，请确认权限/定位服务</string>
+    <string name="toast_location_loading">定位加载中</string>
+    <string name="toast_no_points">没有数据可导出</string>
+    <string name="toast_permission_denied">定位权限被拒绝</string>
+    <string name="toast_point_added">打点完成</string>
+</resources>

@@ -13,15 +13,18 @@ object GpxExporter {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val content = buildString {
-            appendLine(<?xml version=\"1.0\" encoding=\"UTF-8\"?>)
-            appendLine(<gpx version=\"1.1\" creator=\"map-timeline-tool\" xmlns=\"http://www.topografix.com/GPX/1/1\">)
+            appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
+            appendLine("""<gpx version="1.1" creator="map-timeline-tool" xmlns="http://www.topografix.com/GPX/1/1">""")
             points.forEach { p ->
-                appendLine(  <wpt lat=\"${'$'}{p.latitude}\" lon=\"${'$'}{p.longitude}\">)
-                appendLine(    <time>${'$'}{sdf.format(Date(p.timestamp))}</time>)
-                appendLine(    <name>${'$'}{escape(p.note)}</name>)
-                appendLine(  </wpt>)
+                appendLine("""  <wpt lat="${'$'}{p.latitude}" lon="${'$'}{p.longitude}">""")
+                appendLine("""    <time>${'$'}{sdf.format(Date(p.timestamp))}</time>""")
+                appendLine("""    <name>${'$'}{escape(p.title)}</name>""")
+                if (p.note.isNotBlank()) {
+                    appendLine("""    <desc>${'$'}{escape(p.note)}</desc>""")
+                }
+                appendLine("""  </wpt>""")
             }
-            appendLine(</gpx>)
+            appendLine("</gpx>")
         }
         file.writeText(content)
     }

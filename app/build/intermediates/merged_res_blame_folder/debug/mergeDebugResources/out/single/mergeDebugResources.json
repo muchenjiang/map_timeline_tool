@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "C:\\Users\\Edison_jiang\\.gradle\\daemon\\8.7\\com.lavacrafter.maptimelinetool.app-debug-62:\\xml_provider_paths.xml.flat",
+        "source": "C:\\Users\\Edison_jiang\\.gradle\\daemon\\8.7\\com.lavacrafter.maptimelinetool.app-main-64:\\xml\\provider_paths.xml"
+    },
+    {
+        "merged": "com.lavacrafter.maptimelinetool.app-debug-62:/drawable_ic_notification.xml.flat",
+        "source": "com.lavacrafter.maptimelinetool.app-main-64:/drawable/ic_notification.xml"
+    }
+]

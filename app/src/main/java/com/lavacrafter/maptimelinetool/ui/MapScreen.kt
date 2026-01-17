@@ -1,13 +1,26 @@
 package com.lavacrafter.maptimelinetool.ui
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Point
+import android.location.Location
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,13 +31,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.PointEntity
-import org.osmdroid.tileprovider.cachemanager.CacheManager
+import kotlinx.coroutines.delay
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.infowindow.InfoWindow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -32,15 +53,80 @@ import java.util.TimeZone
 
 @SuppressLint("MissingPermission")
 @Composable
-fun MapScreen(points: List<PointEntity>) {
+fun MapScreen(
+    points: List<PointEntity>,
+    selectedPointId: Long?,
+    onUpdatePoint: (PointEntity, String, String) -> Unit,
+    onDeletePoint: (PointEntity) -> Unit,
+    isActive: Boolean
+) {
     val context = LocalContext.current
     val sdf = remember {
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
     var mapView: MapView? by remember { mutableStateOf(null) }
-    var isDownloading by remember { mutableStateOf(false) }
+    var editingPoint by remember { mutableStateOf<PointEntity?>(null) }
+    val locationProvider = remember { GpsMyLocationProvider(context) }
+    val orientationProvider = remember { InternalCompassOrientationProvider(context) }
+    val headingOverlay = remember { HeadingLocationOverlay(context) }
+    val todayOrderById = remember(points) { buildTodayOrder(points) }
+
+    LaunchedEffect(selectedPointId, mapView, points) {
+        val map = mapView ?: return@LaunchedEffect
+        val target = selectedPointId?.let { id -> points.find { it.id == id } } ?: return@LaunchedEffect
+        map.controller.setZoom(16.0)
+        map.controller.setCenter(GeoPoint(target.latitude, target.longitude))
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    if (isActive) {
+                        locationProvider.startLocationProvider(headingOverlay)
+                        orientationProvider.startOrientationProvider(headingOverlay)
+                    }
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    locationProvider.stopLocationProvider()
+                    orientationProvider.stopOrientationProvider()
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            locationProvider.stopLocationProvider()
+            orientationProvider.stopOrientationProvider()
+            locationProvider.destroy()
+            orientationProvider.destroy()
+        }
+    }
+
+    LaunchedEffect(isActive, lifecycleOwner) {
+        if (isActive && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            locationProvider.startLocationProvider(headingOverlay)
+            orientationProvider.startOrientationProvider(headingOverlay)
+        } else if (!isActive) {
+            locationProvider.stopLocationProvider()
+            orientationProvider.stopOrientationProvider()
+        }
+    }
+
+    LaunchedEffect(isActive, mapView) {
+        if (!isActive) return@LaunchedEffect
+        while (isActive) {
+            mapView?.postInvalidate()
+            delay(1000L)
+        }
+    }
+
+    var lastOverlaySignature by remember { mutableStateOf<List<Long>>(emptyList()) }
+    var overlaysReady by remember { mutableStateOf(false) }
 
     Box {
         AndroidView(
@@ -51,6 +137,7 @@ fun MapScreen(points: List<PointEntity>) {
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
@@ -60,68 +147,192 @@ fun MapScreen(points: List<PointEntity>) {
                 }
             },
             update = { map ->
+                val signature = points.map { it.id }
+                if (overlaysReady && signature == lastOverlaySignature) {
+                    map.invalidate()
+                    return@AndroidView
+                }
                 map.overlays.clear()
                 points.forEach { p ->
+                    val order = todayOrderById[p.id]
+                    val color = if (order != null) spectrumColor(order) else DEFAULT_MARKER_COLOR
                     val marker = Marker(map).apply {
                         position = GeoPoint(p.latitude, p.longitude)
-                        title = p.note
+                        title = p.title
+                        snippet = p.note
                         subDescription = context.getString(
                             R.string.label_utc_time,
                             sdf.format(Date(p.timestamp))
                         )
+                        icon = createCounterIcon(context, order?.toString().orEmpty(), color)
+                        setOnMarkerClickListener { clicked, mapView ->
+                            InfoWindow.closeAllInfoWindowsOn(mapView)
+                            clicked.showInfoWindow()
+                            true
+                        }
                     }
                     map.overlays.add(marker)
                 }
+                map.overlays.add(
+                    MapEventsOverlay(object : MapEventsReceiver {
+                        override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                            InfoWindow.closeAllInfoWindowsOn(map)
+                            return false
+                        }
+
+                        override fun longPressHelper(p: GeoPoint): Boolean {
+                            val nearest = findNearestPoint(map, points, p, 48f)
+                            if (nearest != null) {
+                                editingPoint = nearest
+                                return true
+                            }
+                            return false
+                        }
+                    })
+                )
+                map.overlays.add(headingOverlay)
                 map.invalidate()
+                lastOverlaySignature = signature
+                overlaysReady = true
             }
         )
 
-        ExtendedFloatingActionButton(
+        FloatingActionButton(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.BottomStart)
                 .padding(16.dp),
-            text = { Text(stringResource(R.string.action_download_map)) },
             onClick = {
-                val map = mapView
-                if (map == null || isDownloading) return@ExtendedFloatingActionButton
-                val bbox = map.boundingBox
-                val currentZoom = map.zoomLevel.toInt()
-                val minZoom = (currentZoom - 2).coerceAtLeast(3)
-                val maxZoom = (currentZoom + 2).coerceAtMost(20)
-                isDownloading = true
-                Toast.makeText(context, context.getString(R.string.toast_download_start), Toast.LENGTH_SHORT).show()
-                CacheManager(map).downloadAreaAsync(
-                    context,
-                    bbox,
-                    minZoom,
-                    maxZoom,
-                    object : CacheManager.CacheManagerCallback {
-                        override fun onTaskComplete() {
-                            map.post {
-                                isDownloading = false
-                                Toast.makeText(context, context.getString(R.string.toast_download_complete), Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                val map = mapView ?: return@FloatingActionButton
+                val cached = readCachedLocation(context)
+                if (cached == null) {
+                    Toast.makeText(context, context.getString(R.string.toast_location_loading), Toast.LENGTH_SHORT).show()
+                }
+                val targetLocation = cached?.let { GeoPoint(it.latitude, it.longitude) }
+                val targetPoint = selectedPointId?.let { id -> points.find { it.id == id } } ?: points.firstOrNull()
+                val target = targetLocation ?: targetPoint?.let { GeoPoint(it.latitude, it.longitude) }
+                target?.let {
+                    map.controller.setZoom(16.0)
+                    map.controller.setCenter(it)
+                }
+            }
+        ) {
+            Text(stringResource(R.string.action_center))
+        }
+    }
 
-                        override fun onTaskFailed(errors: Int) {
-                            map.post {
-                                isDownloading = false
-                                Toast.makeText(context, context.getString(R.string.toast_download_failed), Toast.LENGTH_SHORT).show()
-                            }
-                        }
-
-                        override fun onTaskCancelled() {
-                            map.post {
-                                isDownloading = false
-                            }
-                        }
-
-                        override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
-                            // no-op
-                        }
-                    }
-                )
+    if (editingPoint != null) {
+        val point = editingPoint!!
+        var title by remember(point) { mutableStateOf(point.title) }
+        var note by remember(point) { mutableStateOf(point.note) }
+        AlertDialog(
+            onDismissRequest = { editingPoint = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    onUpdatePoint(point, title, note)
+                    editingPoint = null
+                }) { Text(stringResource(R.string.action_save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingPoint = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
+            title = { Text(stringResource(R.string.dialog_title_edit_point)) },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text(stringResource(R.string.dialog_title_label)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text(stringResource(R.string.dialog_note_label)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(stringResource(R.string.label_lat_lon, point.latitude, point.longitude))
+                    TextButton(onClick = {
+                        onDeletePoint(point)
+                        editingPoint = null
+                    }) { Text(stringResource(R.string.action_delete)) }
+                }
             }
         )
     }
 }
+
+private fun createCounterIcon(
+    context: android.content.Context,
+    text: String,
+    color: Int
+): android.graphics.drawable.BitmapDrawable {
+    val size = (24 * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        style = Paint.Style.FILL
+    }
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = Color.WHITE
+        textSize = 32f
+        textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+    }
+    canvas.drawCircle(size / 2f, size / 2f, size / 2.2f, circlePaint)
+    if (text.isNotBlank()) {
+        val y = (size / 2f) - (textPaint.descent() + textPaint.ascent()) / 2
+        canvas.drawText(text, size / 2f, y, textPaint)
+    }
+    return android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
+}
+
+private val SPECTRUM_COLORS = listOf(
+    Color.parseColor("#F44336"),
+    Color.parseColor("#FF9800"),
+    Color.parseColor("#FFEB3B"),
+    Color.parseColor("#4CAF50"),
+    Color.parseColor("#00BCD4"),
+    Color.parseColor("#2196F3"),
+    Color.parseColor("#9C27B0")
+)
+
+private val DEFAULT_MARKER_COLOR = Color.parseColor("#2E7D32")
+
+private fun spectrumColor(order: Int): Int {
+    val index = (order - 1).coerceAtLeast(0) % SPECTRUM_COLORS.size
+    return SPECTRUM_COLORS[index]
+}
+
+private fun readCachedLocation(context: android.content.Context): Location? {
+    val prefs = context.getSharedPreferences(HeadingLocationOverlay.LOCATION_PREFS, android.content.Context.MODE_PRIVATE)
+    if (!prefs.contains(HeadingLocationOverlay.KEY_LAT) || !prefs.contains(HeadingLocationOverlay.KEY_LON)) {
+        return null
+    }
+    return Location("cached").apply {
+        latitude = prefs.getFloat(HeadingLocationOverlay.KEY_LAT, 0f).toDouble()
+        longitude = prefs.getFloat(HeadingLocationOverlay.KEY_LON, 0f).toDouble()
+        time = prefs.getLong(HeadingLocationOverlay.KEY_TIME, System.currentTimeMillis())
+    }
+}
+
+private fun findNearestPoint(map: MapView, points: List<PointEntity>, target: GeoPoint, maxDp: Float): PointEntity? {
+    val projection = map.projection ?: return null
+    val targetPx = projection.toPixels(target, Point())
+    val density = map.context.resources.displayMetrics.density
+    val maxPx = maxDp * density
+    var nearest: PointEntity? = null
+    var minDist = Float.MAX_VALUE
+    points.forEach { p ->
+        val px = projection.toPixels(GeoPoint(p.latitude, p.longitude), Point())
+        val dx = (px.x - targetPx.x).toFloat()
+        val dy = (px.y - targetPx.y).toFloat()
+        val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+        if (dist < minDist && dist <= maxPx) {
+            minDist = dist
+            nearest = p
+        }
+    }
+    return nearest
+}
+

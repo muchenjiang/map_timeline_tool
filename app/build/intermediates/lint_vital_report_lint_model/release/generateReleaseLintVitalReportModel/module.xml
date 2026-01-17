@@ -1,0 +1,18 @@
+<lint-module
+    format="1"
+    dir="C:\Users\Edison_jiang\github\map_timeline_tool\map_timeline_tool\app"
+    name=":app"
+    type="APP"
+    maven="map_timeline_tool:app:unspecified"
+    agpVersion="8.5.2"
+    buildFolder="build"
+    bootClassPath="C:\Users\Edison_jiang\Home\platforms\android-34\android.jar;C:\Users\Edison_jiang\Home\build-tools\34.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-34">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

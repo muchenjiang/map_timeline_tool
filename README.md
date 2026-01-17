@@ -1,26 +1,35 @@
 # Map Timeline Tool
 
-手动打点记录工具（本地存储 + 地图查看 + GPX 导出）
+手动打点记录工具（本地存储 + 地图查看 + CSV 导出）
 
 ## 功能
 - 一键记录当前点（时间/经纬度/备注）
 - 列表查看打点
 - 地图查看打点（OSMDroid）
-- GPX 导出（导出到外部文件目录并可分享）
-- 时间统一使用 UTC
-- 地图支持预下载（离线查看）
+- CSV 导出（使用系统文件保存对话框）
+- 通知栏快速打点
+- 支持深色模式
+- 时间统一使用 UTC（导出/地图详情）
 - 界面支持中文/英文
 
 ## 运行
 1. Android Studio 打开工程
 2. 运行到真机（需要定位权限）
-3. 顶部「打点」按钮记录当前位置
-4. 顶部「导出」按钮导出 GPX
+3. 中间「打点」按钮记录当前位置
+4. 设置页「导出 CSV」导出
 
 ## 注意
-- GPX 文件导出在应用外部文件目录，可通过分享/文件管理器获取
-- OSMDroid 使用 OSM 在线瓦片；后续可以改为离线瓦片
-- 仅地图瓦片下载需要联网，其余功能均为本地
+- CSV 文件通过系统文件保存对话框导出
+- OSMDroid 使用 OSM 在线瓦片
+- 仅地图瓦片加载需要联网，其余功能均为本地
+
+## 开源与署名
+应用内「设置」和「关于」页面已列出开源项目与署名信息。
+
+依赖与署名要求（摘要）：
+- AndroidX / Jetpack Compose / Room / Material Components / Kotlin（Apache-2.0）
+- osmdroid（Apache-2.0）
+- OpenStreetMap 数据（ODbL，需署名）
 
 ## 工程结构（实际）
 ```
@@ -39,12 +48,17 @@ app/
 				PointDao.kt
 				PointRepository.kt
 			export/
-				GpxExporter.kt
+				export/
+					GpxExporter.kt
+					CsvExporter.kt
 			ui/
 				AddPointDialog.kt
 				AppViewModel.kt
 				ListScreen.kt
 				MapScreen.kt
+				SettingsScreen.kt
+				AboutScreen.kt
+				DayOrderUtils.kt
 				theme/Theme.kt
 		res/
 			values/strings.xml
