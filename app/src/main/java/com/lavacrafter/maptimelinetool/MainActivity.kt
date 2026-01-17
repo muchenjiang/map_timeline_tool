@@ -26,7 +26,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.FileProvider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.lavacrafter.maptimelinetool.export.GpxExporter
+import com.lavacrafter.maptimelinetool.ui.AddPointDialog
 import com.lavacrafter.maptimelinetool.ui.AppViewModel
 import com.lavacrafter.maptimelinetool.ui.ListScreen
 import com.lavacrafter.maptimelinetool.ui.MapScreen
@@ -45,9 +48,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MapTimelineToolTheme {
+                val context = LocalContext.current
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
-                ) { }
+                ) { result ->
+                    val granted = result.values.all { it }
+                    if (!granted) {
+                        Toast.makeText(context, context.getString(R.string.toast_permission_denied), Toast.LENGTH_SHORT).show()
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     permissionLauncher.launch(
@@ -66,14 +75,14 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Map Timeline Tool") },
+                            title = { Text(stringResource(R.string.app_name)) },
                             actions = {
-                                TextButton(onClick = { showDialog = true }) { Text("打点") }
+                                TextButton(onClick = { showDialog = true }) { Text(stringResource(R.string.action_add_point)) }
                                 TextButton(onClick = {
                                     scope.launch {
                                         val points = viewModel.getAllPoints()
                                         if (points.isEmpty()) {
-                                            Toast.makeText(this@MainActivity, "没有数据可导出", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.toast_no_points), Toast.LENGTH_SHORT).show()
                                             return@launch
                                         }
                                         val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
@@ -91,9 +100,9 @@ class MainActivity : ComponentActivity() {
                                             putExtra(Intent.EXTRA_STREAM, uri)
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
-                                        startActivity(Intent.createChooser(intent, "导出 GPX"))
+                                        startActivity(Intent.createChooser(intent, context.getString(R.string.export_chooser_title)))
                                     }
-                                }) { Text("导出") }
+                                }) { Text(stringResource(R.string.action_export_gpx)) }
                             }
                         )
                     },
@@ -102,13 +111,13 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == 0,
                                 onClick = { tab = 0 },
-                                label = { Text("地图") },
+                                label = { Text(stringResource(R.string.tab_map)) },
                                 icon = { }
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
                                 onClick = { tab = 1 },
-                                label = { Text("列表") },
+                                label = { Text(stringResource(R.string.tab_list)) },
                                 icon = { }
                             )
                         }
@@ -128,7 +137,7 @@ class MainActivity : ComponentActivity() {
                         onConfirm = { note ->
                             val loc = viewModel.getLastKnownLocation()
                             if (loc == null) {
-                                Toast.makeText(this@MainActivity, "无法获取定位，请确认权限/定位服务", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
                             } else {
                                 viewModel.addPoint(note, loc)
                             }

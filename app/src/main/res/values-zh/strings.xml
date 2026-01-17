@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">地图时间线工具</string>
+    <string name="action_add_point">打点</string>
+    <string name="action_export_gpx">导出</string>
+    <string name="action_download_map">下载地图</string>
+    <string name="tab_map">地图</string>
+    <string name="tab_list">列表</string>
+    <string name="dialog_title_new_point">新打点</string>
+    <string name="dialog_note_label">备注（可选）</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="toast_no_points">没有数据可导出</string>
+    <string name="toast_location_failed">无法获取定位，请确认权限/定位服务</string>
+    <string name="toast_permission_denied">定位权限被拒绝</string>
+    <string name="export_chooser_title">导出 GPX</string>
+    <string name="toast_download_start">开始下载地图</string>
+    <string name="toast_download_complete">地图下载完成</string>
+    <string name="toast_download_failed">地图下载失败</string>
+    <string name="label_utc_time">%1$s UTC</string>
+    <string name="label_lat_lon">%1$.6f, %2$.6f</string>
+</resources>

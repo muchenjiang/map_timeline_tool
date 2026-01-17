@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">Map Timeline Tool</string>
+    <string name="action_add_point">Add</string>
+    <string name="action_export_gpx">Export</string>
+    <string name="action_download_map">Download</string>
+    <string name="tab_map">Map</string>
+    <string name="tab_list">List</string>
+    <string name="dialog_title_new_point">New Point</string>
+    <string name="dialog_note_label">Note (optional)</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="toast_no_points">No points to export</string>
+    <string name="toast_location_failed">Unable to get location. Check permissions/location services.</string>
+    <string name="toast_permission_denied">Location permission denied</string>
+    <string name="export_chooser_title">Export GPX</string>
+    <string name="toast_download_start">Map download started</string>
+    <string name="toast_download_complete">Map download completed</string>
+    <string name="toast_download_failed">Map download failed</string>
+    <string name="label_utc_time">%1$s UTC</string>
+    <string name="label_lat_lon">%1$.6f, %2$.6f</string>
 </resources>

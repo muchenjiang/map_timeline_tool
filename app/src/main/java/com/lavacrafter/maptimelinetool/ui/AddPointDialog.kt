@@ -1,4 +1,4 @@
-package com.lavacrafter.maptimelinetool
+package com.lavacrafter.maptimelinetool.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.lavacrafter.maptimelinetool.R
 
 @Composable
 fun AddPointDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
@@ -19,18 +21,18 @@ fun AddPointDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(note) }) { Text("保存") }
+            TextButton(onClick = { onConfirm(note) }) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
-        title = { Text("新打点") },
+        title = { Text(stringResource(R.string.dialog_title_new_point)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("备注（可选）") },
+                    label = { Text(stringResource(R.string.dialog_note_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
