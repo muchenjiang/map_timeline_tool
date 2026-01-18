@@ -9,6 +9,7 @@ object SettingsStore {
     private const val KEY_PINNED_TAGS = "pinned_tags"
     private const val KEY_RECENT_TAGS = "recent_tags"
     private const val KEY_ZOOM_BEHAVIOR = "zoom_behavior"
+    private const val KEY_LANGUAGE_PREFERENCE = "language_preference"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -68,6 +69,19 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_ZOOM_BEHAVIOR, behavior.value)
+            .apply()
+    }
+
+    fun getLanguagePreference(context: Context): LanguagePreference {
+        val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_LANGUAGE_PREFERENCE, LanguagePreference.FOLLOW_SYSTEM.value)
+        return LanguagePreference.fromValue(value)
+    }
+
+    fun setLanguagePreference(context: Context, preference: LanguagePreference) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_LANGUAGE_PREFERENCE, preference.value)
             .apply()
     }
 

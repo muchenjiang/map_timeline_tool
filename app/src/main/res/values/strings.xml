@@ -47,6 +47,10 @@
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>
     <string name="settings_about">About</string>
+    <string name="settings_language_label">Language</string>
+    <string name="settings_language_follow_system">System default</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_chinese">Chinese</string>
     <string name="about_title">About</string>
     <string name="tags_title">Tags</string>
     <string name="dialog_title_edit_tag">Edit tag</string>
@@ -63,6 +67,10 @@
     <string name="settings_zoom_behavior_hide">Hide zoom buttons</string>
     <string name="settings_zoom_behavior_interaction">Show while using the map</string>
     <string name="settings_zoom_behavior_always">Always show zoom buttons</string>
+    <string name="settings_language_restart_title">Restart required</string>
+    <string name="settings_language_restart_message">A restart is required for the new language to take effect.</string>
+    <string name="settings_language_restart_now">Restart now</string>
+    <string name="settings_language_restart_later">Later</string>
     <string name="open_source_androidx">AndroidX (Apache-2.0)</string>
     <string name="open_source_compose">Jetpack Compose (Apache-2.0)</string>
     <string name="open_source_material">Material Components (Apache-2.0)</string>
@@ -74,4 +82,8 @@
     <string name="notification_channel_desc">Quick add point from notification</string>
     <string name="notification_title">Quick add</string>
     <string name="notification_text">Tap to add a point</string>
+    <string name="exit_title">Exit</string>
+    <string name="exit_message">Close Map Timeline Tool?</string>
+    <string name="exit_button">Exit</string>
+    <string name="exit_cancel_button">Cancel</string>
 </resources>

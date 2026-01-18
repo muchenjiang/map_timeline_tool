@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
@@ -60,10 +62,11 @@ import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
+import com.lavacrafter.maptimelinetool.ui.LanguagePreference
+import com.lavacrafter.maptimelinetool.ui.applyLanguagePreference
 import com.lavacrafter.maptimelinetool.ui.theme.MapTimelineToolTheme
 import com.lavacrafter.maptimelinetool.notification.QuickAddService
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,14 +83,27 @@ class MainActivity : ComponentActivity() {
             var isDarkTheme by remember { mutableStateOf(false) }
             MapTimelineToolTheme(darkTheme = isDarkTheme) {
                 val context = LocalContext.current
+                val restartApp = {
+                    val restartIntent = Intent(context, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(restartIntent)
+                    finish()
+                }
                 var timeoutSeconds by remember { mutableStateOf(SettingsStore.getTimeoutSeconds(context)) }
                 var cachePolicy by remember { mutableStateOf(SettingsStore.getCachePolicy(context)) }
                 var pinnedTagIds by remember { mutableStateOf(SettingsStore.getPinnedTagIds(context).toSet()) }
                 var recentTagIds by remember { mutableStateOf(SettingsStore.getRecentTagIds(context)) }
                 var zoomBehavior by remember { mutableStateOf(SettingsStore.getZoomButtonBehavior(context)) }
-                var showTagPicker by remember { mutableStateOf(false) }
+                var showTagPickerForAdd by remember { mutableStateOf(false) }
+                var showTagPickerForEdit by remember { mutableStateOf(false) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
+                var showExitDialog by remember { mutableStateOf(false) }
+                var languagePreference by remember { mutableStateOf(SettingsStore.getLanguagePreference(context)) }
+                var showLanguageRestartDialog by remember { mutableStateOf(false) }
+                val scaffoldState = rememberBottomSheetScaffoldState()
+                val sheetState = scaffoldState.bottomSheetState
 
                 val recordRecentTag: (Long) -> Unit = { tagId ->
                     recentTagIds = SettingsStore.addRecentTagId(context, tagId)
@@ -142,6 +158,10 @@ class MainActivity : ComponentActivity() {
                     applyMapCachePolicy(context, cachePolicy)
                 }
 
+                LaunchedEffect(languagePreference) {
+                    applyLanguagePreference(languagePreference)
+                }
+
                 var tab by remember { mutableStateOf(0) }
                 var showAbout by remember { mutableStateOf(false) }
                 var showDialog by remember { mutableStateOf(false) }
@@ -151,17 +171,42 @@ class MainActivity : ComponentActivity() {
                 var editingPointTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var editingTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
                 var selectedTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
-                BackHandler(showTagPicker) { showTagPicker = false }
-                BackHandler(showDialog && !showTagPicker) {
+                val toggleEditingPointTag: (Long) -> Unit = { tagId ->
+                    editingPoint?.let { point ->
+                        val shouldAttach = !editingPointTagIds.contains(tagId)
+                        viewModel.setTagForPoint(point.id, tagId, shouldAttach)
+                        editingPointTagIds = if (shouldAttach) {
+                            recordRecentTag(tagId)
+                            editingPointTagIds + tagId
+                        } else {
+                            editingPointTagIds - tagId
+                        }
+                    }
+                }
+                val scope = rememberCoroutineScope()
+                BackHandler(showTagPickerForEdit) { showTagPickerForEdit = false }
+                BackHandler(showTagPickerForAdd) { showTagPickerForAdd = false }
+                BackHandler(editingPoint != null) {
+                    editingPoint = null
+                    editingPointTagIds = emptySet()
+                }
+                BackHandler(editingTag != null) { editingTag = null }
+                BackHandler(showDialog && !showTagPickerForAdd && !showTagPickerForEdit) {
                     viewModel.cancelAutoAdd()
                     showDialog = false
                     pendingTimestamp = null
                     newPointSelectedTagIds = emptySet()
-                    showTagPicker = false
+                    showTagPickerForAdd = false
                 }
-                BackHandler(selectedTag != null) { selectedTag = null }
                 BackHandler(showAbout) { showAbout = false }
-                val scope = rememberCoroutineScope()
+                BackHandler(selectedTag != null) { selectedTag = null }
+                BackHandler(showLanguageRestartDialog) { showLanguageRestartDialog = false }
+                BackHandler(!showDialog && !showTagPickerForAdd && !showTagPickerForEdit && editingPoint == null && editingTag == null && !showAbout && selectedTag == null && sheetState.currentValue != SheetValue.Expanded) {
+                    showExitDialog = true
+                }
+                BackHandler(showExitDialog) {
+                    finishAffinity()
+                }
                 val pointsState = viewModel.points.collectAsState().value
                 val tagsState = viewModel.tags.collectAsState().value
                 val quickTags = remember(tagsState, pinnedTagIds, recentTagIds) {
@@ -177,7 +222,7 @@ class MainActivity : ComponentActivity() {
                             return@launch
                         }
                         val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                        val fileName = "map_timeline_${'$'}{sdf.format(Date())}.csv"
+                        val fileName = "map_timeline_${sdf.format(Date())}.csv"
                         pendingCsv = CsvExporter.buildCsv(points)
                         exportLauncher.launch(fileName)
                     }
@@ -239,7 +284,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onEditPointFromMap = { point -> editingPoint = point },
                                 isActive = tab == 0,
-                                zoomBehavior = zoomBehavior
+                                zoomBehavior = zoomBehavior,
+                                scaffoldState = scaffoldState
                             )
                             1 -> {
                                 if (selectedTag != null) {
@@ -296,6 +342,14 @@ class MainActivity : ComponentActivity() {
                                         zoomBehavior = it
                                         SettingsStore.setZoomButtonBehavior(context, it)
                                     },
+                                    languagePreference = languagePreference,
+                                    onLanguagePreferenceChange = { preference ->
+                                        if (preference != languagePreference) {
+                                            languagePreference = preference
+                                            SettingsStore.setLanguagePreference(context, preference)
+                                            showLanguageRestartDialog = true
+                                        }
+                                    },
                                     onExportCsv = exportCsv,
                                     onClearCache = {
                                         val cacheDir = Configuration.getInstance().osmdroidTileCache
@@ -317,8 +371,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(showTagPicker) {
-                    if (showTagPicker) {
+                LaunchedEffect(showTagPickerForAdd || showTagPickerForEdit) {
+                    if (showTagPickerForAdd || showTagPickerForEdit) {
                         viewModel.cancelAutoAdd()
                     } else if (showDialog && pendingTimestamp != null) {
                         viewModel.scheduleAutoAdd(pendingTimestamp!!, timeoutSeconds)
@@ -332,13 +386,13 @@ class MainActivity : ComponentActivity() {
                         tags = tagsState,
                         selectedTagIds = newPointSelectedTagIds,
                         onToggleTag = toggleNewPointTag,
-                        onOpenTagPicker = { showTagPicker = true },
+                        onOpenTagPicker = { showTagPickerForAdd = true },
                         onDismiss = {
                             viewModel.cancelAutoAdd()
                             showDialog = false
                             pendingTimestamp = null
                             newPointSelectedTagIds = emptySet()
-                            showTagPicker = false
+                            showTagPickerForAdd = false
                         },
                         onConfirm = { title, note, createdAt, selectedTags ->
                             scope.launch {
@@ -354,19 +408,51 @@ class MainActivity : ComponentActivity() {
                                 showDialog = false
                                 pendingTimestamp = null
                                 newPointSelectedTagIds = emptySet()
-                                showTagPicker = false
+                                showTagPickerForAdd = false
                             }
                         }
                     )
                 }
 
-                if (showTagPicker) {
+                if (showTagPickerForAdd || showTagPickerForEdit) {
                     TagSelectionDialog(
                         tags = tagsState,
-                        selectedTagIds = newPointSelectedTagIds,
-                        onToggleTag = toggleNewPointTag,
-                        onDismiss = { showTagPicker = false },
-                        onConfirm = { showTagPicker = false }
+                        selectedTagIds = if (showTagPickerForAdd) newPointSelectedTagIds else editingPointTagIds,
+                        onToggleTag = if (showTagPickerForAdd) toggleNewPointTag else toggleEditingPointTag,
+                        onCreateTag = { name, onResult ->
+                            viewModel.addTag(name) { tagId ->
+                                onResult(tagId)
+                            }
+                        },
+                        onDismiss = {
+                            showTagPickerForAdd = false
+                            showTagPickerForEdit = false
+                        },
+                        onConfirm = {
+                            showTagPickerForAdd = false
+                            showTagPickerForEdit = false
+                        }
+                    )
+                }
+
+                if (showLanguageRestartDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLanguageRestartDialog = false },
+                        title = { Text(stringResource(R.string.settings_language_restart_title)) },
+                        text = { Text(stringResource(R.string.settings_language_restart_message)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showLanguageRestartDialog = false
+                                restartApp()
+                            }) {
+                                Text(stringResource(R.string.settings_language_restart_now))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showLanguageRestartDialog = false }) {
+                                Text(stringResource(R.string.settings_language_restart_later))
+                            }
+                        }
                     )
                 }
 
@@ -380,19 +466,11 @@ class MainActivity : ComponentActivity() {
                     val point = editingPoint!!
                     EditPointDialog(
                         point = point,
+                        quickTags = quickTags,
                         tags = tagsState,
                         selectedTagIds = editingPointTagIds,
-                        onToggleTag = { tagId, enabled ->
-                            viewModel.setTagForPoint(point.id, tagId, enabled)
-                            editingPointTagIds = if (enabled) {
-                                editingPointTagIds + tagId
-                            } else {
-                                editingPointTagIds - tagId
-                            }
-                        },
-                        onCreateTag = { name, onResult ->
-                            viewModel.addTag(name) { tagId -> onResult(tagId) }
-                        },
+                        onToggleTag = toggleEditingPointTag,
+                        onOpenTagPicker = { showTagPickerForEdit = true },
                         onSave = { title, note ->
                             viewModel.updatePoint(point, title, note)
                             editingPoint = null
@@ -436,6 +514,24 @@ class MainActivity : ComponentActivity() {
                         text = { Text(stringResource(R.string.tag_pin_limit_message)) }
                     )
                 }
+
+                if (showExitDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showExitDialog = false },
+                        title = { Text(stringResource(R.string.exit_title)) },
+                        text = { Text(stringResource(R.string.exit_message)) },
+                        confirmButton = {
+                            TextButton(onClick = { finishAffinity() }) {
+                                Text(stringResource(R.string.exit_button))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showExitDialog = false }) {
+                                Text(stringResource(R.string.exit_cancel_button))
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -450,10 +546,11 @@ private fun MapWithListSheet(
     onLongPressPoint: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
     onEditPointFromMap: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
     isActive: Boolean,
-    zoomBehavior: ZoomButtonBehavior
+    zoomBehavior: ZoomButtonBehavior,
+    scaffoldState: BottomSheetScaffoldState
 ) {
     BottomSheetScaffold(
-        scaffoldState = rememberBottomSheetScaffoldState(),
+        scaffoldState = scaffoldState,
         sheetPeekHeight = 72.dp,
         sheetContent = {
             Column(modifier = Modifier.padding(8.dp)) {
