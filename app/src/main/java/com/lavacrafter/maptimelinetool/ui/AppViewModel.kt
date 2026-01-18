@@ -128,7 +128,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return@suspendCancellableCoroutine
         }
 
-        val listener = android.location.LocationListener { location ->
+        lateinit var listener: android.location.LocationListener
+        listener = android.location.LocationListener { location ->
             lm.removeUpdates(listener)
             cont.resume(location)
         }

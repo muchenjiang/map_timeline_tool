@@ -1,5 +1,6 @@
 package com.lavacrafter.maptimelinetool.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.TagEntity
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TagListScreen(
     tags: List<TagEntity>,
