@@ -34,6 +34,8 @@ fun SettingsScreen(
     onTimeoutSecondsChange: (Int) -> Unit,
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
+    zoomBehavior: ZoomButtonBehavior,
+    onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
     onExportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
@@ -93,6 +95,25 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text(text = stringResource(R.string.settings_zoom_behavior_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        ZoomBehaviorOption(
+            label = stringResource(R.string.settings_zoom_behavior_hide),
+            selected = zoomBehavior == ZoomButtonBehavior.HIDE,
+            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.HIDE) }
+        )
+        ZoomBehaviorOption(
+            label = stringResource(R.string.settings_zoom_behavior_interaction),
+            selected = zoomBehavior == ZoomButtonBehavior.WHEN_ACTIVE,
+            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.WHEN_ACTIVE) }
+        )
+        ZoomBehaviorOption(
+            label = stringResource(R.string.settings_zoom_behavior_always),
+            selected = zoomBehavior == ZoomButtonBehavior.ALWAYS,
+            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.ALWAYS) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onExportCsv) {
             Text(text = stringResource(R.string.action_export_csv))
         }
@@ -115,6 +136,16 @@ fun SettingsScreen(
 
 @Composable
 private fun CachePolicyOption(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            RadioButton(selected = selected, onClick = onSelect)
+            Text(text = label, modifier = Modifier.padding(top = 12.dp))
+        }
+    }
+}
+
+@Composable
+private fun ZoomBehaviorOption(label: String, selected: Boolean, onSelect: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             RadioButton(selected = selected, onClick = onSelect)

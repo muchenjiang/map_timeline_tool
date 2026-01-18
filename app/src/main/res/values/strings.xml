@@ -31,6 +31,9 @@
     <string name="label_lat_lon">%1$.6f, %2$.6f</string>
     <string name="label_tags">Tags</string>
     <string name="label_new_tag">New tag</string>
+    <string name="label_quick_tags">Quick tags</string>
+    <string name="label_more_tags">More tags</string>
+    <string name="label_selected_tags">Selected tags</string>
     <string name="label_tag_name">Tag name</string>
     <string name="settings_title">Settings</string>
     <string name="settings_theme_label">Dark theme</string>
@@ -52,6 +55,14 @@
     <string name="about_open_source_title">Open-source projects</string>
     <string name="about_ai_title">AI assistance</string>
     <string name="about_ai_text">This project was built with the help of AI tools.</string>
+    <string name="tag_lock">Lock</string>
+    <string name="tag_unlock">Unlock</string>
+    <string name="tag_pin_limit_message">You can lock up to three tags.</string>
+    <string name="tag_pin_limit_button">OK</string>
+    <string name="settings_zoom_behavior_label">Zoom controls</string>
+    <string name="settings_zoom_behavior_hide">Hide zoom buttons</string>
+    <string name="settings_zoom_behavior_interaction">Show while using the map</string>
+    <string name="settings_zoom_behavior_always">Always show zoom buttons</string>
     <string name="open_source_androidx">AndroidX (Apache-2.0)</string>
     <string name="open_source_compose">Jetpack Compose (Apache-2.0)</string>
     <string name="open_source_material">Material Components (Apache-2.0)</string>

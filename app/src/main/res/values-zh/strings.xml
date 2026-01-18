@@ -30,6 +30,9 @@
     <string name="label_utc_time">%1$s UTC</string>
     <string name="label_lat_lon">%1$.6f, %2$.6f</string>
     <string name="label_tags">标签</string>
+    <string name="label_quick_tags">常用标签</string>
+    <string name="label_more_tags">更多标签</string>
+    <string name="label_selected_tags">已选标签</string>
     <string name="label_new_tag">新标签</string>
     <string name="label_tag_name">标签名称</string>
     <string name="settings_title">设置</string>
@@ -52,6 +55,14 @@
     <string name="about_open_source_title">开源项目</string>
     <string name="about_ai_title">AI 说明</string>
     <string name="about_ai_text">本项目在开发过程中使用了 AI 辅助。</string>
+    <string name="tag_lock">锁定</string>
+    <string name="tag_unlock">取消锁定</string>
+    <string name="tag_pin_limit_message">最多只能锁定 3 个标签。</string>
+    <string name="tag_pin_limit_button">知道了</string>
+    <string name="settings_zoom_behavior_label">缩放按钮</string>
+    <string name="settings_zoom_behavior_hide">不显示</string>
+    <string name="settings_zoom_behavior_interaction">操作时显示</string>
+    <string name="settings_zoom_behavior_always">始终显示</string>
     <string name="open_source_androidx">AndroidX（Apache-2.0）</string>
     <string name="open_source_compose">Jetpack Compose（Apache-2.0）</string>
     <string name="open_source_material">Material Components（Apache-2.0）</string>

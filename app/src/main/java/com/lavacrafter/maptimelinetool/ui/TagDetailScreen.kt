@@ -3,6 +3,7 @@ package com.lavacrafter.maptimelinetool.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -36,7 +37,14 @@ fun TagDetailScreen(
     var showPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        ) {
+            Text(stringResource(R.string.action_back))
+        }
         Text(text = tag.name)
         Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = { showPicker = true }) { Text(stringResource(R.string.action_add_point_to_tag)) }

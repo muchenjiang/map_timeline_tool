@@ -9,8 +9,11 @@ import android.graphics.Point
 import android.location.Location
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +55,8 @@ fun MapScreen(
     points: List<PointEntity>,
     selectedPointId: Long?,
     onEditPoint: (PointEntity) -> Unit,
-    isActive: Boolean
+    isActive: Boolean,
+    zoomBehavior: ZoomButtonBehavior
 ) {
     val context = LocalContext.current
     val sdf = remember {
@@ -210,6 +214,33 @@ fun MapScreen(
             }
         ) {
             Text(stringResource(R.string.action_center))
+        }
+
+        val shouldShowZoom = when (zoomBehavior) {
+            ZoomButtonBehavior.HIDE -> false
+            ZoomButtonBehavior.WHEN_ACTIVE -> isActive
+            ZoomButtonBehavior.ALWAYS -> true
+        }
+        if (shouldShowZoom) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FloatingActionButton(
+                    modifier = Modifier.size(44.dp),
+                    onClick = { mapView?.controller?.zoomIn() }
+                ) {
+                    Text("+")
+                }
+                FloatingActionButton(
+                    modifier = Modifier.size(44.dp),
+                    onClick = { mapView?.controller?.zoomOut() }
+                ) {
+                    Text("-")
+                }
+            }
         }
     }
 

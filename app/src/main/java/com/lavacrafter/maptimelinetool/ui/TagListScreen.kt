@@ -17,6 +17,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,9 +33,11 @@ import com.lavacrafter.maptimelinetool.data.TagEntity
 @Composable
 fun TagListScreen(
     tags: List<TagEntity>,
+    pinnedTagIds: Set<Long>,
     onAddTag: (String) -> Unit,
     onOpenTag: (TagEntity) -> Unit,
-    onEditTag: (TagEntity) -> Unit
+    onEditTag: (TagEntity) -> Unit,
+    onTogglePin: (TagEntity, Boolean) -> Unit
 ) {
     var newTag by remember { mutableStateOf("") }
     Column(
@@ -75,7 +78,17 @@ fun TagListScreen(
                             onLongClick = { onEditTag(tag) }
                         )
                         .padding(vertical = 4.dp),
-                    headlineContent = { Text(tag.name) }
+                    headlineContent = { Text(tag.name) },
+                    trailingContent = {
+                        TextButton(onClick = {
+                            val shouldPin = !pinnedTagIds.contains(tag.id)
+                            onTogglePin(tag, shouldPin)
+                        }) {
+                            Text(
+                                text = if (pinnedTagIds.contains(tag.id)) stringResource(R.string.tag_unlock) else stringResource(R.string.tag_lock)
+                            )
+                        }
+                    }
                 )
                 Divider()
             }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PointDao {
     @Insert
-    suspend fun insert(point: PointEntity)
+    suspend fun insert(point: PointEntity): Long
 
     @Update
     suspend fun update(point: PointEntity)

@@ -10,6 +10,7 @@ import android.os.Vibrator
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.rememberBottomSheetScaffoldState
@@ -54,7 +56,9 @@ import com.lavacrafter.maptimelinetool.ui.MapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
 import com.lavacrafter.maptimelinetool.ui.TagListScreen
+import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.theme.MapTimelineToolTheme
 import com.lavacrafter.maptimelinetool.notification.QuickAddService
@@ -78,6 +82,25 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 var timeoutSeconds by remember { mutableStateOf(SettingsStore.getTimeoutSeconds(context)) }
                 var cachePolicy by remember { mutableStateOf(SettingsStore.getCachePolicy(context)) }
+                var pinnedTagIds by remember { mutableStateOf(SettingsStore.getPinnedTagIds(context).toSet()) }
+                var recentTagIds by remember { mutableStateOf(SettingsStore.getRecentTagIds(context)) }
+                var zoomBehavior by remember { mutableStateOf(SettingsStore.getZoomButtonBehavior(context)) }
+                var showTagPicker by remember { mutableStateOf(false) }
+                var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+                var showPinLimitDialog by remember { mutableStateOf(false) }
+
+                val recordRecentTag: (Long) -> Unit = { tagId ->
+                    recentTagIds = SettingsStore.addRecentTagId(context, tagId)
+                }
+                val toggleNewPointTag: (Long) -> Unit = { tagId ->
+                    newPointSelectedTagIds = if (newPointSelectedTagIds.contains(tagId)) {
+                        newPointSelectedTagIds - tagId
+                    } else {
+                        recordRecentTag(tagId)
+                        newPointSelectedTagIds + tagId
+                    }
+                }
+
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
@@ -128,9 +151,24 @@ class MainActivity : ComponentActivity() {
                 var editingPointTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var editingTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
                 var selectedTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
+                BackHandler(showTagPicker) { showTagPicker = false }
+                BackHandler(showDialog && !showTagPicker) {
+                    viewModel.cancelAutoAdd()
+                    showDialog = false
+                    pendingTimestamp = null
+                    newPointSelectedTagIds = emptySet()
+                    showTagPicker = false
+                }
+                BackHandler(selectedTag != null) { selectedTag = null }
+                BackHandler(showAbout) { showAbout = false }
                 val scope = rememberCoroutineScope()
                 val pointsState = viewModel.points.collectAsState().value
                 val tagsState = viewModel.tags.collectAsState().value
+                val quickTags = remember(tagsState, pinnedTagIds, recentTagIds) {
+                    val pinned = tagsState.filter { pinnedTagIds.contains(it.id) }
+                    val recent = recentTagIds.mapNotNull { id -> tagsState.firstOrNull { it.id == id } }
+                    (pinned + recent).distinctBy { it.id }.take(3)
+                }
                 val exportCsv: () -> Unit = {
                     scope.launch {
                         val points = viewModel.getAllPoints()
@@ -200,7 +238,8 @@ class MainActivity : ComponentActivity() {
                                     editingPoint = point
                                 },
                                 onEditPointFromMap = { point -> editingPoint = point },
-                                isActive = tab == 0
+                                isActive = tab == 0,
+                                zoomBehavior = zoomBehavior
                             )
                             1 -> {
                                 if (selectedTag != null) {
@@ -221,9 +260,18 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     TagListScreen(
                                         tags = tagsState,
+                                        pinnedTagIds = pinnedTagIds,
                                         onAddTag = { name -> viewModel.addTag(name) },
                                         onOpenTag = { tag -> selectedTag = tag },
-                                        onEditTag = { tag -> editingTag = tag }
+                                        onEditTag = { tag -> editingTag = tag },
+                                        onTogglePin = { tag, shouldPin ->
+                                            if (shouldPin && pinnedTagIds.size >= 3) {
+                                                showPinLimitDialog = true
+                                            } else {
+                                                pinnedTagIds = if (shouldPin) pinnedTagIds + tag.id else pinnedTagIds - tag.id
+                                                SettingsStore.setPinnedTagIds(context, pinnedTagIds.toList())
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -242,6 +290,11 @@ class MainActivity : ComponentActivity() {
                                     onCachePolicyChange = {
                                         cachePolicy = it
                                         SettingsStore.setCachePolicy(context, it)
+                                    },
+                                    zoomBehavior = zoomBehavior,
+                                    onZoomBehaviorChange = {
+                                        zoomBehavior = it
+                                        SettingsStore.setZoomButtonBehavior(context, it)
                                     },
                                     onExportCsv = exportCsv,
                                     onClearCache = {
@@ -264,29 +317,56 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(showTagPicker) {
+                    if (showTagPicker) {
+                        viewModel.cancelAutoAdd()
+                    } else if (showDialog && pendingTimestamp != null) {
+                        viewModel.scheduleAutoAdd(pendingTimestamp!!, timeoutSeconds)
+                    }
+                }
+
                 if (showDialog && pendingTimestamp != null) {
                     AddPointDialog(
+                        createdAt = pendingTimestamp!!,
+                        quickTags = quickTags,
+                        tags = tagsState,
+                        selectedTagIds = newPointSelectedTagIds,
+                        onToggleTag = toggleNewPointTag,
+                        onOpenTagPicker = { showTagPicker = true },
                         onDismiss = {
                             viewModel.cancelAutoAdd()
                             showDialog = false
                             pendingTimestamp = null
+                            newPointSelectedTagIds = emptySet()
+                            showTagPicker = false
                         },
-                        createdAt = pendingTimestamp!!,
-                        onConfirm = { title, note, createdAt ->
+                        onConfirm = { title, note, createdAt, selectedTags ->
                             scope.launch {
                                 viewModel.cancelAutoAdd()
                                 val loc = viewModel.getFreshLocation(5000L)
                                 if (loc == null) {
                                     Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
                                 } else {
-                                    viewModel.addPoint(title, note, loc, createdAt)
+                                    viewModel.addPointWithTags(title, note, loc, createdAt, selectedTags)
                                     vibrateOnce(context)
                                     Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
                                 }
                                 showDialog = false
                                 pendingTimestamp = null
+                                newPointSelectedTagIds = emptySet()
+                                showTagPicker = false
                             }
                         }
+                    )
+                }
+
+                if (showTagPicker) {
+                    TagSelectionDialog(
+                        tags = tagsState,
+                        selectedTagIds = newPointSelectedTagIds,
+                        onToggleTag = toggleNewPointTag,
+                        onDismiss = { showTagPicker = false },
+                        onConfirm = { showTagPicker = false }
                     )
                 }
 
@@ -343,6 +423,19 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { editingTag = null }
                     )
                 }
+
+                if (showPinLimitDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showPinLimitDialog = false },
+                        confirmButton = {
+                            TextButton(onClick = { showPinLimitDialog = false }) {
+                                Text(stringResource(R.string.tag_pin_limit_button))
+                            }
+                        },
+                        title = { Text(stringResource(R.string.tags_title)) },
+                        text = { Text(stringResource(R.string.tag_pin_limit_message)) }
+                    )
+                }
             }
         }
     }
@@ -356,7 +449,8 @@ private fun MapWithListSheet(
     onSelectPoint: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
     onLongPressPoint: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
     onEditPointFromMap: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
-    isActive: Boolean
+    isActive: Boolean,
+    zoomBehavior: ZoomButtonBehavior
 ) {
     BottomSheetScaffold(
         scaffoldState = rememberBottomSheetScaffoldState(),
@@ -378,7 +472,8 @@ private fun MapWithListSheet(
                 points = points,
                 selectedPointId = selectedPointId,
                 onEditPoint = onEditPointFromMap,
-                isActive = isActive
+                isActive = isActive,
+                zoomBehavior = zoomBehavior
             )
         }
     }

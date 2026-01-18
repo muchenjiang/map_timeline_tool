@@ -33,10 +33,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _autoAdded = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val autoAdded = _autoAdded
 
-    fun addPoint(title: String, note: String, location: Location?, timestamp: Long) {
+    fun addPointWithTags(
+        title: String,
+        note: String,
+        location: Location?,
+        timestamp: Long,
+        tagIds: Set<Long>
+    ) {
         if (location == null) return
         viewModelScope.launch {
-            repo.insert(
+            val id = repo.insert(
                 PointEntity(
                     timestamp = timestamp,
                     latitude = location.latitude,
@@ -45,6 +51,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     note = note
                 )
             )
+            tagIds.forEach { tagId ->
+                repo.insertPointTag(id, tagId)
+            }
         }
     }
 
