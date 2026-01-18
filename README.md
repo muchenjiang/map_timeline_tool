@@ -2,69 +2,69 @@
 
 **Language**: English | [中文](#中文说明)
 
-Map Timeline Tool is an offline-first, manual point logging app for Android. It stores points locally, visualizes them on a map and in a list, and supports CSV export for external tools.
+Map Timeline Tool is a small Android app for manually logging points. It works offline, keeps data on the device, shows points on a map and in a list, and can export CSV files for other tools.
 
 ## Features
-- **One-tap point logging**: record timestamp, latitude/longitude, title, and optional note.
-- **Map view (osmdroid + OSM tiles)**: markers show your points with detail info; today’s points are color-coded by order (red → violet).
-- **List view**: shows all points with coordinates and the **n-th point of today** displayed on the right.
-- **Quick Add notification**: add a point directly from a persistent notification.
-- **UTC in exports & map details**: timestamps are standardized to UTC for interoperability.
-- **CSV export via system picker**: saves to user-selected location.
-- **Dark theme toggle**.
-- **Bilingual UI**: English/Chinese.
+- One-tap point logging — saves timestamp, latitude/longitude, title, and an optional note.
+- Map view (osmdroid + OSM tiles) — markers show details; today's points are color-coded by order.
+- List view — all points are listed with coordinates and a simple "nth point today" indicator.
+- Quick Add notification — log a point from a persistent notification.
+- UTC timestamps in exports and map details for consistency.
+- CSV export via the system file picker.
+- Dark theme toggle.
+- English and Chinese UI.
 
 ## How to Run
-1. Open in Android Studio.
+1. Open the project in Android Studio.
 2. Run on a device and grant location permission.
-3. Tap the center **Add** button to log a point.
-4. Go to **Settings → Export CSV** to export.
+3. Tap the center Add button to record a point.
+4. Export CSV from Settings → Export CSV.
 
 ## Notes
-- CSV is exported via the system document picker.
-- Map tiles are loaded from OpenStreetMap; network is only required for tiles.
-- Location and data remain on-device.
+- CSV is exported using the system document picker.
+- Map tiles come from OpenStreetMap; only tiles need network access.
+- Location and data stay on your device.
 
 ## Open Source & Attribution
-The app’s **Settings** and **About** screens list all open-source components and required attributions.
+The app's Settings and About screens list the open-source components and attribution requirements.
 
 Summary:
 - AndroidX / Jetpack Compose / Room / Material Components / Kotlin (Apache-2.0)
 - osmdroid (Apache-2.0)
-- OpenStreetMap data (ODbL, attribution required)
+- OpenStreetMap data (ODbL — attribution required)
 
-## AI Assistance
-This project was built with the help of AI tools.
+## AI assistance
+AI tools were used to help with parts of the development. Final decisions, review and integration were done by the developer.
 
 ---
 
 # 中文说明
 
-Map Timeline Tool 是一款离线优先的 Android 手动打点应用，所有数据本地存储，可在地图和列表中查看，并支持 CSV 导出。
+Map Timeline Tool 是一款用于手动记录位置点的简洁 Android 应用，支持离线使用，数据保存在设备上，可在地图与列表中查看，并能导出 CSV 文件。
 
 ## 功能
-- **一键打点**：记录时间、经纬度、标题和备注。
-- **地图视图（osmdroid + OSM 瓦片）**：点位支持详情显示，当日点位按顺序颜色区分（红→紫）。
-- **列表视图**：显示所有点位和坐标，右侧标注“当日第 n 个点”。
-- **通知栏快速打点**：常驻通知一键打点。
-- **导出/地图详情使用 UTC 时间**。
-- **CSV 导出（系统文件选择器）**。
-- **深色模式开关**。
-- **中英文界面**。
+- 一键打点：记录时间、经纬度、标题和可选备注。
+- 地图视图（osmdroid + OSM 瓦片）：显示点位详情，当日点位按顺序用颜色区分。
+- 列表视图：列出所有点位与坐标，并显示“当日第 n 个点”。
+- 通知栏快速打点：可通过常驻通知记录位置。
+- 导出与地图详情使用 UTC 时间以保持一致性。
+- CSV 通过系统文件选择器导出。
+- 深色模式支持。
+- 中英文界面。
 
 ## 运行
-1. 使用 Android Studio 打开工程。
-2. 运行到真机并授予定位权限。
-3. 点击底部中间 **打点** 按钮记录。
-4. 设置页点击 **导出 CSV**。
+1. 在 Android Studio 中打开工程。
+2. 运行到设备并授予定位权限。
+3. 点击底部中间的打点按钮进行记录。
+4. 在设置中选择导出 CSV。
 
 ## 说明
 - CSV 通过系统文件选择器导出。
-- 地图瓦片来源于 OpenStreetMap，仅加载瓦片需要联网。
-- 位置与数据均保存在本地。
+- 地图瓦片来自 OpenStreetMap，仅加载瓦片需要联网。
+- 位置与数据保存在本地。
 
 ## 开源与署名
-应用内「设置」与「关于」页面已列出所有开源项目与署名要求。
+应用内「设置」与「关于」页面列出了所用开源库与署名要求。
 
 摘要：
 - AndroidX / Jetpack Compose / Room / Material Components / Kotlin（Apache-2.0）
@@ -72,5 +72,5 @@ Map Timeline Tool 是一款离线优先的 Android 手动打点应用，所有�
 - OpenStreetMap 数据（ODbL，需要署名）
 
 ## AI 说明
-本项目在开发过程中使用了 AI 辅助。
+开发过程中使用了 AI 辅助工具，最终设计与决策由开发者负责。
 
