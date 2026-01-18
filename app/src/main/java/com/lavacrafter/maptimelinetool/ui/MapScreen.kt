@@ -9,15 +9,13 @@ import android.graphics.Point
 import android.location.Location
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,9 +54,9 @@ import java.util.TimeZone
 fun MapScreen(
     points: List<PointEntity>,
     selectedPointId: Long?,
-    onUpdatePoint: (PointEntity, String, String) -> Unit,
-    onDeletePoint: (PointEntity) -> Unit,
-    isActive: Boolean
+    onEditPoint: (PointEntity) -> Unit,
+    isActive: Boolean,
+    zoomBehavior: ZoomButtonBehavior
 ) {
     val context = LocalContext.current
     val sdf = remember {
@@ -68,7 +66,6 @@ fun MapScreen(
     }
     val lifecycleOwner = LocalLifecycleOwner.current
     var mapView: MapView? by remember { mutableStateOf(null) }
-    var editingPoint by remember { mutableStateOf<PointEntity?>(null) }
     val locationProvider = remember { GpsMyLocationProvider(context) }
     val orientationProvider = remember { InternalCompassOrientationProvider(context) }
     val headingOverlay = remember { HeadingLocationOverlay(context) }
@@ -138,6 +135,7 @@ fun MapScreen(
                     )
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
+                    setBuiltInZoomControls(false)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
@@ -183,7 +181,7 @@ fun MapScreen(
                         override fun longPressHelper(p: GeoPoint): Boolean {
                             val nearest = findNearestPoint(map, points, p, 48f)
                             if (nearest != null) {
-                                editingPoint = nearest
+                                onEditPoint(nearest)
                                 return true
                             }
                             return false
@@ -218,47 +216,35 @@ fun MapScreen(
         ) {
             Text(stringResource(R.string.action_center))
         }
-    }
 
-    if (editingPoint != null) {
-        val point = editingPoint!!
-        var title by remember(point) { mutableStateOf(point.title) }
-        var note by remember(point) { mutableStateOf(point.note) }
-        AlertDialog(
-            onDismissRequest = { editingPoint = null },
-            confirmButton = {
-                TextButton(onClick = {
-                    onUpdatePoint(point, title, note)
-                    editingPoint = null
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingPoint = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
-            title = { Text(stringResource(R.string.dialog_title_edit_point)) },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text(stringResource(R.string.dialog_title_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = note,
-                        onValueChange = { note = it },
-                        label = { Text(stringResource(R.string.dialog_note_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(stringResource(R.string.label_lat_lon, point.latitude, point.longitude))
-                    TextButton(onClick = {
-                        onDeletePoint(point)
-                        editingPoint = null
-                    }) { Text(stringResource(R.string.action_delete)) }
+        val shouldShowZoom = when (zoomBehavior) {
+            ZoomButtonBehavior.HIDE -> false
+            ZoomButtonBehavior.WHEN_ACTIVE -> isActive
+            ZoomButtonBehavior.ALWAYS -> true
+        }
+        if (shouldShowZoom) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FloatingActionButton(
+                    modifier = Modifier.size(44.dp),
+                    onClick = { mapView?.controller?.zoomIn() }
+                ) {
+                    Text("+")
+                }
+                FloatingActionButton(
+                    modifier = Modifier.size(44.dp),
+                    onClick = { mapView?.controller?.zoomOut() }
+                ) {
+                    Text("-")
                 }
             }
-        )
+        }
     }
+
 }
 
 private fun createCounterIcon(

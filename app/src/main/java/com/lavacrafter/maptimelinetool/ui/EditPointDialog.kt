@@ -1,6 +1,5 @@
 package com.lavacrafter.maptimelinetool.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
@@ -15,86 +15,63 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.data.PointEntity
 import com.lavacrafter.maptimelinetool.data.TagEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
-fun AddPointDialog(
-    createdAt: Long,
+fun EditPointDialog(
+    point: PointEntity,
     quickTags: List<TagEntity>,
     tags: List<TagEntity>,
     selectedTagIds: Set<Long>,
-    title: String,
-    note: String,
-    remainingSeconds: Int,
-    isCountdownPaused: Boolean,
-    onTitleChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onUserTyping: () -> Unit,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, Set<Long>) -> Unit
+    onSave: (String, String) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    val defaultTitle = remember(createdAt) {
-        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(createdAt))
-    }
+    var title by remember(point) { mutableStateOf(point.title) }
+    var note by remember(point) { mutableStateOf(point.note) }
 
     val selectedTags = remember(tags, selectedTagIds) {
         tags.filter { selectedTagIds.contains(it.id) }
     }
 
-
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(if (title.isBlank()) defaultTitle else title, note, createdAt, selectedTagIds) }) {
+            TextButton(onClick = { onSave(title, note) }) {
                 Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
-        title = { Text(stringResource(R.string.dialog_title_new_point)) },
+        title = { Text(stringResource(R.string.dialog_title_edit_point)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = {
-                        onTitleChange(it)
-                        onUserTyping()
-                    },
+                    onValueChange = { title = it },
                     label = { Text(stringResource(R.string.dialog_title_label)) },
-                    placeholder = { Text(defaultTitle) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = note,
-                    onValueChange = {
-                        onNoteChange(it)
-                        onUserTyping()
-                    },
+                    onValueChange = { note = it },
                     label = { Text(stringResource(R.string.dialog_note_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                val safeSeconds = remainingSeconds.coerceAtLeast(0)
-                val countdownLabel = if (isCountdownPaused) {
-                    stringResource(R.string.label_auto_save_paused, safeSeconds)
-                } else {
-                    stringResource(R.string.label_auto_save_countdown, safeSeconds)
-                }
-                Text(text = countdownLabel)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(text = stringResource(R.string.label_quick_tags), fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
                 QuickTagGrid(
@@ -106,8 +83,6 @@ fun AddPointDialog(
                 )
                 if (selectedTags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = stringResource(R.string.label_selected_tags))
-                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier
                             .horizontalScroll(rememberScrollState())
@@ -121,8 +96,10 @@ fun AddPointDialog(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(stringResource(R.string.label_lat_lon, point.latitude, point.longitude))
+                TextButton(onClick = onDelete) { Text(stringResource(R.string.action_delete)) }
             }
         }
     )
 }
-
