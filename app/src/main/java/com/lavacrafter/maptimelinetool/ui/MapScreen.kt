@@ -10,14 +10,9 @@ import android.location.Location
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,8 +51,7 @@ import java.util.TimeZone
 fun MapScreen(
     points: List<PointEntity>,
     selectedPointId: Long?,
-    onUpdatePoint: (PointEntity, String, String) -> Unit,
-    onDeletePoint: (PointEntity) -> Unit,
+    onEditPoint: (PointEntity) -> Unit,
     isActive: Boolean
 ) {
     val context = LocalContext.current
@@ -68,7 +62,6 @@ fun MapScreen(
     }
     val lifecycleOwner = LocalLifecycleOwner.current
     var mapView: MapView? by remember { mutableStateOf(null) }
-    var editingPoint by remember { mutableStateOf<PointEntity?>(null) }
     val locationProvider = remember { GpsMyLocationProvider(context) }
     val orientationProvider = remember { InternalCompassOrientationProvider(context) }
     val headingOverlay = remember { HeadingLocationOverlay(context) }
@@ -183,7 +176,7 @@ fun MapScreen(
                         override fun longPressHelper(p: GeoPoint): Boolean {
                             val nearest = findNearestPoint(map, points, p, 48f)
                             if (nearest != null) {
-                                editingPoint = nearest
+                                onEditPoint(nearest)
                                 return true
                             }
                             return false
@@ -220,45 +213,6 @@ fun MapScreen(
         }
     }
 
-    if (editingPoint != null) {
-        val point = editingPoint!!
-        var title by remember(point) { mutableStateOf(point.title) }
-        var note by remember(point) { mutableStateOf(point.note) }
-        AlertDialog(
-            onDismissRequest = { editingPoint = null },
-            confirmButton = {
-                TextButton(onClick = {
-                    onUpdatePoint(point, title, note)
-                    editingPoint = null
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingPoint = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
-            title = { Text(stringResource(R.string.dialog_title_edit_point)) },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text(stringResource(R.string.dialog_title_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = note,
-                        onValueChange = { note = it },
-                        label = { Text(stringResource(R.string.dialog_note_label)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(stringResource(R.string.label_lat_lon, point.latitude, point.longitude))
-                    TextButton(onClick = {
-                        onDeletePoint(point)
-                        editingPoint = null
-                    }) { Text(stringResource(R.string.action_delete)) }
-                }
-            }
-        )
-    }
 }
 
 private fun createCounterIcon(

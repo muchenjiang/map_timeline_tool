@@ -15,9 +15,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.NavigationBar
@@ -41,9 +45,16 @@ import com.lavacrafter.maptimelinetool.export.CsvExporter
 import com.lavacrafter.maptimelinetool.ui.AboutScreen
 import com.lavacrafter.maptimelinetool.ui.AddPointDialog
 import com.lavacrafter.maptimelinetool.ui.AppViewModel
+import com.lavacrafter.maptimelinetool.ui.EditPointDialog
+import com.lavacrafter.maptimelinetool.ui.EditTagDialog
 import com.lavacrafter.maptimelinetool.ui.ListScreen
 import com.lavacrafter.maptimelinetool.ui.MapScreen
+import com.lavacrafter.maptimelinetool.ui.MapCachePolicy
+import com.lavacrafter.maptimelinetool.ui.SettingsStore
+import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
+import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.theme.MapTimelineToolTheme
 import com.lavacrafter.maptimelinetool.notification.QuickAddService
 import kotlinx.coroutines.launch
@@ -64,6 +75,8 @@ class MainActivity : ComponentActivity() {
             var isDarkTheme by remember { mutableStateOf(false) }
             MapTimelineToolTheme(darkTheme = isDarkTheme) {
                 val context = LocalContext.current
+                var timeoutSeconds by remember { mutableStateOf(SettingsStore.getTimeoutSeconds(context)) }
+                var cachePolicy by remember { mutableStateOf(SettingsStore.getCachePolicy(context)) }
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
@@ -101,13 +114,22 @@ class MainActivity : ComponentActivity() {
                     startService(Intent(context, QuickAddService::class.java))
                 }
 
-                var tab by remember { mutableStateOf(1) }
+                LaunchedEffect(cachePolicy) {
+                    applyMapCachePolicy(context, cachePolicy)
+                }
+
+                var tab by remember { mutableStateOf(0) }
                 var showAbout by remember { mutableStateOf(false) }
                 var showDialog by remember { mutableStateOf(false) }
                 var pendingTimestamp by remember { mutableStateOf<Long?>(null) }
                 var selectedPointId by remember { mutableStateOf<Long?>(null) }
+                var editingPoint by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.PointEntity?>(null) }
+                var editingPointTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+                var editingTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
+                var selectedTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
                 val scope = rememberCoroutineScope()
                 val pointsState = viewModel.points.collectAsState().value
+                val tagsState = viewModel.tags.collectAsState().value
                 val exportCsv: () -> Unit = {
                     scope.launch {
                         val points = viewModel.getAllPoints()
@@ -134,6 +156,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.height(64.dp),
                             onClick = {
                                 pendingTimestamp = System.currentTimeMillis()
+                                viewModel.scheduleAutoAdd(pendingTimestamp!!, timeoutSeconds)
                                 showDialog = true
                             }
                         ) {
@@ -152,7 +175,7 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = tab == 1,
                                 onClick = { tab = 1 },
-                                label = { Text(stringResource(R.string.tab_list)) },
+                                label = { Text(stringResource(R.string.tab_tags)) },
                                 icon = { }
                             )
                             NavigationBarItem(
@@ -166,16 +189,42 @@ class MainActivity : ComponentActivity() {
                 ) { padding ->
                     Box(modifier = Modifier.padding(padding)) {
                         when (tab) {
-                            0 -> MapScreen(
+                            0 -> MapWithListSheet(
                                 points = pointsState,
                                 selectedPointId = selectedPointId,
-                                onUpdatePoint = { point, title, note -> viewModel.updatePoint(point, title, note) },
-                                onDeletePoint = { point -> viewModel.deletePoint(point) },
+                                onSelectPoint = { point ->
+                                    selectedPointId = point.id
+                                },
+                                onLongPressPoint = { point ->
+                                    editingPoint = point
+                                },
+                                onEditPointFromMap = { point -> editingPoint = point },
                                 isActive = tab == 0
                             )
-                            1 -> ListScreen(points = pointsState) { point ->
-                                selectedPointId = point.id
-                                tab = 0
+                            1 -> {
+                                if (selectedTag != null) {
+                                    val tagPoints = viewModel.observePointsForTag(selectedTag!!.id).collectAsState(emptyList()).value
+                                    TagDetailScreen(
+                                        tag = selectedTag!!,
+                                        points = tagPoints,
+                                        allPoints = pointsState,
+                                        onSelectPoint = { point ->
+                                            selectedPointId = point.id
+                                            tab = 0
+                                        },
+                                        onLongPressPoint = { point -> editingPoint = point },
+                                        onAddPointToTag = { point -> viewModel.setTagForPoint(point.id, selectedTag!!.id, true) },
+                                        onRemovePointFromTag = { point -> viewModel.setTagForPoint(point.id, selectedTag!!.id, false) },
+                                        onBack = { selectedTag = null }
+                                    )
+                                } else {
+                                    TagListScreen(
+                                        tags = tagsState,
+                                        onAddTag = { name -> viewModel.addTag(name) },
+                                        onOpenTag = { tag -> selectedTag = tag },
+                                        onEditTag = { tag -> editingTag = tag }
+                                    )
+                                }
                             }
                             2 -> if (showAbout) {
                                 AboutScreen(onBack = { showAbout = false })
@@ -183,6 +232,16 @@ class MainActivity : ComponentActivity() {
                                 SettingsScreen(
                                     isDarkTheme = isDarkTheme,
                                     onDarkThemeChange = { isDarkTheme = it },
+                                    timeoutSeconds = timeoutSeconds,
+                                    onTimeoutSecondsChange = {
+                                        timeoutSeconds = it
+                                        SettingsStore.setTimeoutSeconds(context, it)
+                                    },
+                                    cachePolicy = cachePolicy,
+                                    onCachePolicyChange = {
+                                        cachePolicy = it
+                                        SettingsStore.setCachePolicy(context, it)
+                                    },
                                     onExportCsv = exportCsv,
                                     onClearCache = {
                                         val cacheDir = Configuration.getInstance().osmdroidTileCache
@@ -196,28 +255,130 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(Unit) {
+                    viewModel.autoAdded.collect {
+                        showDialog = false
+                        pendingTimestamp = null
+                        Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
+                    }
+                }
+
                 if (showDialog && pendingTimestamp != null) {
                     AddPointDialog(
                         onDismiss = {
+                            viewModel.cancelAutoAdd()
                             showDialog = false
                             pendingTimestamp = null
                         },
                         createdAt = pendingTimestamp!!,
                         onConfirm = { title, note, createdAt ->
-                            val loc = viewModel.getLastKnownLocation()
-                            if (loc == null) {
-                                Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
-                            } else {
-                                viewModel.addPoint(title, note, loc, createdAt)
-                                vibrateOnce(context)
-                                Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                viewModel.cancelAutoAdd()
+                                val loc = viewModel.getFreshLocation(5000L)
+                                if (loc == null) {
+                                    Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                                } else {
+                                    viewModel.addPoint(title, note, loc, createdAt)
+                                    vibrateOnce(context)
+                                    Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
+                                }
+                                showDialog = false
+                                pendingTimestamp = null
                             }
-                            showDialog = false
-                            pendingTimestamp = null
                         }
                     )
                 }
+
+                LaunchedEffect(editingPoint) {
+                    editingPoint?.let { point ->
+                        editingPointTagIds = viewModel.getTagIdsForPoint(point.id).toSet()
+                    }
+                }
+
+                if (editingPoint != null) {
+                    val point = editingPoint!!
+                    EditPointDialog(
+                        point = point,
+                        tags = tagsState,
+                        selectedTagIds = editingPointTagIds,
+                        onToggleTag = { tagId, enabled ->
+                            viewModel.setTagForPoint(point.id, tagId, enabled)
+                            editingPointTagIds = if (enabled) {
+                                editingPointTagIds + tagId
+                            } else {
+                                editingPointTagIds - tagId
+                            }
+                        },
+                        onCreateTag = { name, onResult ->
+                            viewModel.addTag(name) { tagId -> onResult(tagId) }
+                        },
+                        onSave = { title, note ->
+                            viewModel.updatePoint(point, title, note)
+                            editingPoint = null
+                        },
+                        onDelete = {
+                            viewModel.deletePoint(point)
+                            editingPoint = null
+                        },
+                        onDismiss = { editingPoint = null }
+                    )
+                }
+
+                if (editingTag != null) {
+                    val tag = editingTag!!
+                    EditTagDialog(
+                        tag = tag,
+                        onRename = { name ->
+                            viewModel.renameTag(tag, name)
+                            editingTag = null
+                        },
+                        onDelete = {
+                            viewModel.deleteTag(tag.id)
+                            if (selectedTag?.id == tag.id) {
+                                selectedTag = null
+                            }
+                            editingTag = null
+                        },
+                        onDismiss = { editingTag = null }
+                    )
+                }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MapWithListSheet(
+    points: List<com.lavacrafter.maptimelinetool.data.PointEntity>,
+    selectedPointId: Long?,
+    onSelectPoint: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
+    onLongPressPoint: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
+    onEditPointFromMap: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
+    isActive: Boolean
+) {
+    BottomSheetScaffold(
+        scaffoldState = rememberBottomSheetScaffoldState(),
+        sheetPeekHeight = 72.dp,
+        sheetContent = {
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(text = stringResource(R.string.tab_list))
+                Spacer(modifier = Modifier.height(8.dp))
+                ListScreen(
+                    points = points,
+                    onSelect = onSelectPoint,
+                    onLongPress = onLongPressPoint
+                )
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            MapScreen(
+                points = points,
+                selectedPointId = selectedPointId,
+                onEditPoint = onEditPointFromMap,
+                isActive = isActive
+            )
         }
     }
 }

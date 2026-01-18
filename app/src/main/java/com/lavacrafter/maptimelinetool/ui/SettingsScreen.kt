@@ -1,17 +1,24 @@
 package com.lavacrafter.maptimelinetool.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,10 +29,15 @@ import com.lavacrafter.maptimelinetool.R
 fun SettingsScreen(
     isDarkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
+    timeoutSeconds: Int,
+    onTimeoutSecondsChange: (Int) -> Unit,
+    cachePolicy: MapCachePolicy,
+    onCachePolicyChange: (MapCachePolicy) -> Unit,
     onExportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
+    var timeoutText by remember(timeoutSeconds) { mutableStateOf(timeoutSeconds.toString()) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -46,6 +58,40 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text(text = stringResource(R.string.settings_timeout_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = timeoutText,
+            onValueChange = { value ->
+                timeoutText = value.filter { it.isDigit() }
+                timeoutText.toIntOrNull()?.let { seconds ->
+                    onTimeoutSecondsChange(seconds)
+                }
+            },
+            label = { Text(stringResource(R.string.settings_timeout_hint)) },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(text = stringResource(R.string.settings_cache_policy_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        CachePolicyOption(
+            label = stringResource(R.string.settings_cache_policy_disabled),
+            selected = cachePolicy == MapCachePolicy.DISABLED,
+            onSelect = { onCachePolicyChange(MapCachePolicy.DISABLED) }
+        )
+        CachePolicyOption(
+            label = stringResource(R.string.settings_cache_policy_wifi),
+            selected = cachePolicy == MapCachePolicy.WIFI_ONLY,
+            onSelect = { onCachePolicyChange(MapCachePolicy.WIFI_ONLY) }
+        )
+        CachePolicyOption(
+            label = stringResource(R.string.settings_cache_policy_always),
+            selected = cachePolicy == MapCachePolicy.ALWAYS,
+            onSelect = { onCachePolicyChange(MapCachePolicy.ALWAYS) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onExportCsv) {
             Text(text = stringResource(R.string.action_export_csv))
         }
@@ -55,21 +101,6 @@ fun SettingsScreen(
             Text(text = stringResource(R.string.action_clear_cache))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_project_label))
-        Text(text = stringResource(R.string.settings_project_url))
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.settings_open_source_title))
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = stringResource(R.string.open_source_androidx))
-        Text(text = stringResource(R.string.open_source_compose))
-        Text(text = stringResource(R.string.open_source_material))
-        Text(text = stringResource(R.string.open_source_room))
-        Text(text = stringResource(R.string.open_source_osmdroid))
-        Text(text = stringResource(R.string.open_source_kotlin))
-        Text(text = stringResource(R.string.open_source_osm))
-
         Spacer(modifier = Modifier.height(16.dp))
         TextButton(
             modifier = Modifier.align(Alignment.End),
@@ -78,5 +109,15 @@ fun SettingsScreen(
             Text(text = stringResource(R.string.settings_about))
         }
 
+    }
+}
+
+@Composable
+private fun CachePolicyOption(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            RadioButton(selected = selected, onClick = onSelect)
+            Text(text = label, modifier = Modifier.padding(top = 12.dp))
+        }
     }
 }
