@@ -134,6 +134,7 @@ fun MapScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     setTileSource(TileSourceFactory.MAPNIK)
+                    setBuiltInZoomControls(false)
                     setMultiTouchControls(true)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
