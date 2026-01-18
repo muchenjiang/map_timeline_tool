@@ -44,6 +44,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.lavacrafter.maptimelinetool.export.CsvExporter
@@ -62,7 +63,6 @@ import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
-import com.lavacrafter.maptimelinetool.ui.LanguagePreference
 import com.lavacrafter.maptimelinetool.ui.applyLanguagePreference
 import com.lavacrafter.maptimelinetool.ui.theme.MapTimelineToolTheme
 import com.lavacrafter.maptimelinetool.notification.QuickAddService
@@ -79,17 +79,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        applyLanguagePreference(SettingsStore.getLanguagePreference(this))
+
         setContent {
             var isDarkTheme by remember { mutableStateOf(false) }
-            MapTimelineToolTheme(darkTheme = isDarkTheme) {
+            var followSystemTheme by remember { mutableStateOf(SettingsStore.getFollowSystemTheme(this)) }
+            val isSystemDark = isSystemInDarkTheme()
+            MapTimelineToolTheme(darkTheme = if (followSystemTheme) isSystemDark else isDarkTheme) {
                 val context = LocalContext.current
-                val restartApp = {
-                    val restartIntent = Intent(context, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    startActivity(restartIntent)
-                    finish()
-                }
                 var timeoutSeconds by remember { mutableStateOf(SettingsStore.getTimeoutSeconds(context)) }
                 var cachePolicy by remember { mutableStateOf(SettingsStore.getCachePolicy(context)) }
                 var pinnedTagIds by remember { mutableStateOf(SettingsStore.getPinnedTagIds(context).toSet()) }
@@ -100,8 +97,11 @@ class MainActivity : ComponentActivity() {
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
-                var languagePreference by remember { mutableStateOf(SettingsStore.getLanguagePreference(context)) }
-                var showLanguageRestartDialog by remember { mutableStateOf(false) }
+                var newPointTitle by remember { mutableStateOf("") }
+                var newPointNote by remember { mutableStateOf("") }
+                var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+                var isCountdownPaused by remember { mutableStateOf(false) }
+                var lastTypingTime by remember { mutableStateOf<Long?>(null) }
                 val scaffoldState = rememberBottomSheetScaffoldState()
                 val sheetState = scaffoldState.bottomSheetState
 
@@ -115,6 +115,10 @@ class MainActivity : ComponentActivity() {
                         recordRecentTag(tagId)
                         newPointSelectedTagIds + tagId
                     }
+                }
+                val onUserTyping = {
+                    lastTypingTime = System.currentTimeMillis()
+                    isCountdownPaused = true
                 }
 
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
@@ -158,9 +162,6 @@ class MainActivity : ComponentActivity() {
                     applyMapCachePolicy(context, cachePolicy)
                 }
 
-                LaunchedEffect(languagePreference) {
-                    applyLanguagePreference(languagePreference)
-                }
 
                 var tab by remember { mutableStateOf(0) }
                 var showAbout by remember { mutableStateOf(false) }
@@ -200,12 +201,59 @@ class MainActivity : ComponentActivity() {
                 }
                 BackHandler(showAbout) { showAbout = false }
                 BackHandler(selectedTag != null) { selectedTag = null }
-                BackHandler(showLanguageRestartDialog) { showLanguageRestartDialog = false }
                 BackHandler(!showDialog && !showTagPickerForAdd && !showTagPickerForEdit && editingPoint == null && editingTag == null && !showAbout && selectedTag == null && sheetState.currentValue != SheetValue.Expanded) {
                     showExitDialog = true
                 }
                 BackHandler(showExitDialog) {
                     finishAffinity()
+                }
+                LaunchedEffect(showDialog, pendingTimestamp, timeoutSeconds) {
+                    if (showDialog && pendingTimestamp != null) {
+                        remainingSeconds = timeoutSeconds
+                        isCountdownPaused = false
+                        lastTypingTime = null
+                        newPointTitle = ""
+                        newPointNote = ""
+                    }
+                }
+                LaunchedEffect(lastTypingTime, showDialog) {
+                    val typingAt = lastTypingTime ?: return@LaunchedEffect
+                    if (!showDialog) return@LaunchedEffect
+                    kotlinx.coroutines.delay(3000L)
+                    if (lastTypingTime == typingAt) {
+                        isCountdownPaused = false
+                    }
+                }
+                LaunchedEffect(showDialog, isCountdownPaused, remainingSeconds, pendingTimestamp) {
+                    if (!showDialog || pendingTimestamp == null) return@LaunchedEffect
+                    if (remainingSeconds <= 0) return@LaunchedEffect
+                    if (isCountdownPaused) return@LaunchedEffect
+                    kotlinx.coroutines.delay(1000L)
+                    if (showDialog && !isCountdownPaused) {
+                        remainingSeconds -= 1
+                    }
+                }
+                LaunchedEffect(remainingSeconds, showDialog, pendingTimestamp) {
+                    if (!showDialog || pendingTimestamp == null) return@LaunchedEffect
+                    if (remainingSeconds > 0) return@LaunchedEffect
+                    val createdAt = pendingTimestamp!!
+                    val defaultTitle = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(createdAt))
+                    val title = newPointTitle.trim().ifBlank { defaultTitle }
+                    val note = newPointNote.trim()
+                    scope.launch {
+                        val loc = viewModel.getLastKnownLocation() ?: viewModel.getFreshLocation(2000L)
+                        if (loc == null) {
+                            Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                        } else {
+                            viewModel.addPointWithTags(title, note, loc, createdAt, newPointSelectedTagIds)
+                            vibrateOnce(context)
+                            Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
+                        }
+                        showDialog = false
+                        pendingTimestamp = null
+                        newPointSelectedTagIds = emptySet()
+                        showTagPickerForAdd = false
+                    }
                 }
                 val pointsState = viewModel.points.collectAsState().value
                 val tagsState = viewModel.tags.collectAsState().value
@@ -240,7 +288,6 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.height(64.dp),
                             onClick = {
                                 pendingTimestamp = System.currentTimeMillis()
-                                viewModel.scheduleAutoAdd(pendingTimestamp!!, timeoutSeconds)
                                 showDialog = true
                             }
                         ) {
@@ -327,6 +374,11 @@ class MainActivity : ComponentActivity() {
                                 SettingsScreen(
                                     isDarkTheme = isDarkTheme,
                                     onDarkThemeChange = { isDarkTheme = it },
+                                    followSystemTheme = followSystemTheme,
+                                    onFollowSystemThemeChange = {
+                                        followSystemTheme = it
+                                        SettingsStore.setFollowSystemTheme(context, it)
+                                    },
                                     timeoutSeconds = timeoutSeconds,
                                     onTimeoutSecondsChange = {
                                         timeoutSeconds = it
@@ -342,14 +394,6 @@ class MainActivity : ComponentActivity() {
                                         zoomBehavior = it
                                         SettingsStore.setZoomButtonBehavior(context, it)
                                     },
-                                    languagePreference = languagePreference,
-                                    onLanguagePreferenceChange = { preference ->
-                                        if (preference != languagePreference) {
-                                            languagePreference = preference
-                                            SettingsStore.setLanguagePreference(context, preference)
-                                            showLanguageRestartDialog = true
-                                        }
-                                    },
                                     onExportCsv = exportCsv,
                                     onClearCache = {
                                         val cacheDir = Configuration.getInstance().osmdroidTileCache
@@ -363,19 +407,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(Unit) {
-                    viewModel.autoAdded.collect {
-                        showDialog = false
-                        pendingTimestamp = null
-                        Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
-                    }
-                }
-
                 LaunchedEffect(showTagPickerForAdd || showTagPickerForEdit) {
                     if (showTagPickerForAdd || showTagPickerForEdit) {
-                        viewModel.cancelAutoAdd()
-                    } else if (showDialog && pendingTimestamp != null) {
-                        viewModel.scheduleAutoAdd(pendingTimestamp!!, timeoutSeconds)
+                        isCountdownPaused = true
                     }
                 }
 
@@ -385,18 +419,28 @@ class MainActivity : ComponentActivity() {
                         quickTags = quickTags,
                         tags = tagsState,
                         selectedTagIds = newPointSelectedTagIds,
+                        title = newPointTitle,
+                        note = newPointNote,
+                        remainingSeconds = remainingSeconds,
+                        isCountdownPaused = isCountdownPaused,
+                        onTitleChange = { newPointTitle = it },
+                        onNoteChange = { newPointNote = it },
+                        onUserTyping = onUserTyping,
                         onToggleTag = toggleNewPointTag,
                         onOpenTagPicker = { showTagPickerForAdd = true },
                         onDismiss = {
-                            viewModel.cancelAutoAdd()
                             showDialog = false
                             pendingTimestamp = null
                             newPointSelectedTagIds = emptySet()
                             showTagPickerForAdd = false
+                            remainingSeconds = timeoutSeconds
+                            isCountdownPaused = false
+                            lastTypingTime = null
+                            newPointTitle = ""
+                            newPointNote = ""
                         },
                         onConfirm = { title, note, createdAt, selectedTags ->
                             scope.launch {
-                                viewModel.cancelAutoAdd()
                                 val loc = viewModel.getFreshLocation(5000L)
                                 if (loc == null) {
                                     Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
@@ -409,6 +453,11 @@ class MainActivity : ComponentActivity() {
                                 pendingTimestamp = null
                                 newPointSelectedTagIds = emptySet()
                                 showTagPickerForAdd = false
+                                remainingSeconds = timeoutSeconds
+                                isCountdownPaused = false
+                                lastTypingTime = null
+                                newPointTitle = ""
+                                newPointNote = ""
                             }
                         }
                     )
@@ -427,34 +476,20 @@ class MainActivity : ComponentActivity() {
                         onDismiss = {
                             showTagPickerForAdd = false
                             showTagPickerForEdit = false
+                            if (showDialog) {
+                                isCountdownPaused = false
+                            }
                         },
                         onConfirm = {
                             showTagPickerForAdd = false
                             showTagPickerForEdit = false
+                            if (showDialog) {
+                                isCountdownPaused = false
+                            }
                         }
                     )
                 }
 
-                if (showLanguageRestartDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLanguageRestartDialog = false },
-                        title = { Text(stringResource(R.string.settings_language_restart_title)) },
-                        text = { Text(stringResource(R.string.settings_language_restart_message)) },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showLanguageRestartDialog = false
-                                restartApp()
-                            }) {
-                                Text(stringResource(R.string.settings_language_restart_now))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showLanguageRestartDialog = false }) {
-                                Text(stringResource(R.string.settings_language_restart_later))
-                            }
-                        }
-                    )
-                }
 
                 LaunchedEffect(editingPoint) {
                     editingPoint?.let { point ->

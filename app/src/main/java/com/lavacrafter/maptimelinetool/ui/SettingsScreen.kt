@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
@@ -27,20 +29,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
-import com.lavacrafter.maptimelinetool.ui.LanguagePreference
 
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
+    followSystemTheme: Boolean,
+    onFollowSystemThemeChange: (Boolean) -> Unit,
     timeoutSeconds: Int,
     onTimeoutSecondsChange: (Int) -> Unit,
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
-    languagePreference: LanguagePreference,
-    onLanguagePreferenceChange: (LanguagePreference) -> Unit,
     onExportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
@@ -60,10 +61,21 @@ fun SettingsScreen(
         Column {
             Text(text = stringResource(R.string.settings_theme_label))
             Spacer(modifier = Modifier.height(8.dp))
-            Switch(
-                checked = isDarkTheme,
-                onCheckedChange = onDarkThemeChange
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = followSystemTheme,
+                    onCheckedChange = onFollowSystemThemeChange
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.settings_theme_follow_system))
+            }
+            if (!followSystemTheme) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Switch(
+                    checked = isDarkTheme,
+                    onCheckedChange = onDarkThemeChange
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -120,25 +132,6 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_language_label))
-        Spacer(modifier = Modifier.height(8.dp))
-        LanguageOption(
-            label = stringResource(R.string.settings_language_follow_system),
-            selected = languagePreference == LanguagePreference.FOLLOW_SYSTEM,
-            onSelect = { onLanguagePreferenceChange(LanguagePreference.FOLLOW_SYSTEM) }
-        )
-        LanguageOption(
-            label = stringResource(R.string.settings_language_english),
-            selected = languagePreference == LanguagePreference.ENGLISH,
-            onSelect = { onLanguagePreferenceChange(LanguagePreference.ENGLISH) }
-        )
-        LanguageOption(
-            label = stringResource(R.string.settings_language_chinese),
-            selected = languagePreference == LanguagePreference.CHINESE,
-            onSelect = { onLanguagePreferenceChange(LanguagePreference.CHINESE) }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onExportCsv) {
             Text(text = stringResource(R.string.action_export_csv))
         }
@@ -179,12 +172,3 @@ private fun ZoomBehaviorOption(label: String, selected: Boolean, onSelect: () ->
     }
 }
 
-@Composable
-private fun LanguageOption(label: String, selected: Boolean, onSelect: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RadioButton(selected = selected, onClick = onSelect)
-            Text(text = label, modifier = Modifier.padding(top = 12.dp))
-        }
-    }
-}

@@ -135,6 +135,7 @@ fun MapScreen(
                     )
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
+                    setBuiltInZoomControls(false)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()

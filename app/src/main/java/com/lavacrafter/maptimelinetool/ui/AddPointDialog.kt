@@ -15,10 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,13 +32,18 @@ fun AddPointDialog(
     quickTags: List<TagEntity>,
     tags: List<TagEntity>,
     selectedTagIds: Set<Long>,
+    title: String,
+    note: String,
+    remainingSeconds: Int,
+    isCountdownPaused: Boolean,
+    onTitleChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onUserTyping: () -> Unit,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, Set<Long>) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
     val defaultTitle = remember(createdAt) {
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(createdAt))
     }
@@ -66,7 +68,10 @@ fun AddPointDialog(
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { title = it },
+                    onValueChange = {
+                        onTitleChange(it)
+                        onUserTyping()
+                    },
                     label = { Text(stringResource(R.string.dialog_title_label)) },
                     placeholder = { Text(defaultTitle) },
                     modifier = Modifier.fillMaxWidth()
@@ -74,10 +79,21 @@ fun AddPointDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = note,
-                    onValueChange = { note = it },
+                    onValueChange = {
+                        onNoteChange(it)
+                        onUserTyping()
+                    },
                     label = { Text(stringResource(R.string.dialog_note_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                val safeSeconds = remainingSeconds.coerceAtLeast(0)
+                val countdownLabel = if (isCountdownPaused) {
+                    stringResource(R.string.label_auto_save_paused, safeSeconds)
+                } else {
+                    stringResource(R.string.label_auto_save_countdown, safeSeconds)
+                }
+                Text(text = countdownLabel)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(text = stringResource(R.string.label_quick_tags), fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))

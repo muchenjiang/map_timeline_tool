@@ -34,9 +34,12 @@
     <string name="label_quick_tags">Quick tags</string>
     <string name="label_more_tags">More tags</string>
     <string name="label_selected_tags">Selected tags</string>
+    <string name="label_auto_save_countdown">Auto save in %1$d s</string>
+    <string name="label_auto_save_paused">Auto save paused (%1$d s)</string>
     <string name="label_tag_name">Tag name</string>
     <string name="settings_title">Settings</string>
     <string name="settings_theme_label">Dark theme</string>
+    <string name="settings_theme_follow_system">Follow system</string>
     <string name="settings_timeout_label">Add timeout (seconds)</string>
     <string name="settings_timeout_hint">Timeout seconds</string>
     <string name="settings_cache_policy_label">Map cache policy</string>

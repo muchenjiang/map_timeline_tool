@@ -10,6 +10,7 @@ object SettingsStore {
     private const val KEY_RECENT_TAGS = "recent_tags"
     private const val KEY_ZOOM_BEHAVIOR = "zoom_behavior"
     private const val KEY_LANGUAGE_PREFERENCE = "language_preference"
+    private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -26,7 +27,7 @@ object SettingsStore {
 
     fun getCachePolicy(context: Context): MapCachePolicy {
         val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getInt(KEY_CACHE_POLICY, MapCachePolicy.ALWAYS.value)
+            .getInt(KEY_CACHE_POLICY, MapCachePolicy.WIFI_ONLY.value)
         return MapCachePolicy.fromValue(value)
     }
 
@@ -82,6 +83,18 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_LANGUAGE_PREFERENCE, preference.value)
+            .apply()
+    }
+
+    fun getFollowSystemTheme(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_FOLLOW_SYSTEM_THEME, true)
+    }
+
+    fun setFollowSystemTheme(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_FOLLOW_SYSTEM_THEME, enabled)
             .apply()
     }
 
