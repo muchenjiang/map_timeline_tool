@@ -2,6 +2,7 @@
 
 package com.lavacrafter.maptimelinetool.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.NetworkStatus
 import com.lavacrafter.maptimelinetool.data.TagEntity
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -60,6 +63,10 @@ fun SettingsScreen(
     networkStatus: NetworkStatus,
     selectedDownloadTileSourceId: String,
     onDownloadTileSourceChange: (String) -> Unit,
+    downloadMultiThreadEnabled: Boolean,
+    onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
+    downloadThreadCount: Int,
+    onDownloadThreadCountChange: (Int) -> Unit,
     mapTileSourceId: String,
     onMapTileSourceChange: (String) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
@@ -81,6 +88,9 @@ fun SettingsScreen(
     onNavigateTo: (SettingsRoute) -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    BackHandler(enabled = route != SettingsRoute.Main) {
+        onNavigateBack()
+    }
     when (route) {
         SettingsRoute.Main -> SettingsOverviewScreen(
             isDarkTheme = isDarkTheme,
@@ -114,6 +124,10 @@ fun SettingsScreen(
         SettingsRoute.Download -> DownloadSettings(
             selectedDownloadTileSourceId = selectedDownloadTileSourceId,
             onDownloadTileSourceChange = onDownloadTileSourceChange,
+            downloadMultiThreadEnabled = downloadMultiThreadEnabled,
+            onDownloadMultiThreadEnabledChange = onDownloadMultiThreadEnabledChange,
+            downloadThreadCount = downloadThreadCount,
+            onDownloadThreadCountChange = onDownloadThreadCountChange,
             downloadedAreas = downloadedAreas,
             onRemoveDownloadedArea = onRemoveDownloadedArea,
             onDeduplicateDownloadedAreas = onDeduplicateDownloadedAreas,
@@ -381,6 +395,10 @@ private fun CacheSettings(
 private fun DownloadSettings(
     selectedDownloadTileSourceId: String,
     onDownloadTileSourceChange: (String) -> Unit,
+    downloadMultiThreadEnabled: Boolean,
+    onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
+    downloadThreadCount: Int,
+    onDownloadThreadCountChange: (Int) -> Unit,
     downloadedAreas: List<DownloadedArea>,
     onRemoveDownloadedArea: (DownloadedArea) -> Unit,
     onDeduplicateDownloadedAreas: () -> Unit,
@@ -401,6 +419,35 @@ private fun DownloadSettings(
                 selectedValue = selectedDownloadTileSourceId,
                 onSelect = onDownloadTileSourceChange
             )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Checkbox(
+                        checked = downloadMultiThreadEnabled,
+                        onCheckedChange = onDownloadMultiThreadEnabledChange
+                    )
+                    Text(text = stringResource(R.string.settings_download_multi_thread_label))
+                }
+
+                Text(
+                    text = stringResource(
+                        R.string.settings_download_thread_count_label,
+                        downloadThreadCount
+                    )
+                )
+                Slider(
+                    value = downloadThreadCount.toFloat(),
+                    onValueChange = { value ->
+                        onDownloadThreadCountChange(value.roundToInt().coerceIn(2, 32))
+                    },
+                    valueRange = 2f..32f,
+                    steps = 29,
+                    enabled = downloadMultiThreadEnabled
+                )
+            }
 
             Button(onClick = onOpenMapDownload, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_map_download_title))

@@ -56,6 +56,8 @@
         <string name="settings_network_status_cellular">移动数据</string>
         <string name="settings_network_status_offline">离线</string>
         <string name="settings_download_source_label">下载源</string>
+        <string name="settings_download_multi_thread_label">启用多线程下载</string>
+        <string name="settings_download_thread_count_label">下载线程数：%1$d</string>
         <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
         <string name="tile_source_wikimedia">Wikimedia 地图</string>
         <string name="tile_source_attribution_openstreetmap">© OpenStreetMap 贡献者</string>

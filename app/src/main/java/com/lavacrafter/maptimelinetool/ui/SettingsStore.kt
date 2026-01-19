@@ -15,6 +15,8 @@ object SettingsStore {
     private const val KEY_MARKER_SCALE = "marker_scale"
     private const val KEY_DOWNLOADED_AREAS = "downloaded_areas"
     private const val KEY_DOWNLOAD_TILE_SOURCE = "download_tile_source"
+    private const val KEY_DOWNLOAD_MULTI_THREAD = "download_multi_thread"
+    private const val KEY_DOWNLOAD_THREAD_COUNT = "download_thread_count"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -133,6 +135,31 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_DOWNLOAD_TILE_SOURCE, sourceId)
+            .apply()
+    }
+
+    fun getDownloadMultiThreadEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_DOWNLOAD_MULTI_THREAD, false)
+    }
+
+    fun setDownloadMultiThreadEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_DOWNLOAD_MULTI_THREAD, enabled)
+            .apply()
+    }
+
+    fun getDownloadThreadCount(context: Context): Int {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_DOWNLOAD_THREAD_COUNT, 4)
+            .coerceIn(2, 32)
+    }
+
+    fun setDownloadThreadCount(context: Context, count: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_DOWNLOAD_THREAD_COUNT, count.coerceIn(2, 32))
             .apply()
     }
 

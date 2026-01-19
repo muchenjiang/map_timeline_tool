@@ -68,6 +68,8 @@
     <string name="settings_download_desc">Pick a download source and manage saved areas.</string>
     <string name="settings_help_download">Select a tile server for bulk downloads, launch the map downloader, and prune or deduplicate saved areas from this screen.</string>
     <string name="settings_download_source_label">Download source</string>
+    <string name="settings_download_multi_thread_label">Enable multi-threaded download</string>
+    <string name="settings_download_thread_count_label">Download threads: %1$d</string>
     <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
     <string name="tile_source_wikimedia">Wikimedia Maps</string>
     <string name="tile_source_attribution_openstreetmap">© OpenStreetMap contributors</string>

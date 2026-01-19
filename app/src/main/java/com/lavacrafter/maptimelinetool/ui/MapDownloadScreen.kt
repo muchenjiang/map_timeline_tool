@@ -39,6 +39,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.lavacrafter.maptimelinetool.LocationUtils
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.ui.DownloadTileSource
+import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
@@ -50,7 +51,9 @@ import kotlin.math.roundToInt
 fun MapDownloadScreen(
     onBack: () -> Unit,
     onAreaDownloaded: (DownloadedArea) -> Unit,
-    tileSource: DownloadTileSource
+    tileSource: DownloadTileSource,
+    useMultiThreadDownload: Boolean,
+    downloadThreadCount: Int
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
@@ -61,6 +64,9 @@ fun MapDownloadScreen(
     var statusText by remember { mutableStateOf(context.getString(R.string.map_download_status_idle)) }
     var showHelp by remember { mutableStateOf(false) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val initialDownloadThreads = remember {
+        Configuration.getInstance().tileDownloadThreads.toInt()
+    }
 
     Scaffold(
         topBar = {
@@ -183,6 +189,12 @@ fun MapDownloadScreen(
                             return@Button
                         }
                         val cacheManager = CacheManager(map)
+                        val desiredThreads = if (useMultiThreadDownload) {
+                            downloadThreadCount.coerceIn(2, 32)
+                        } else {
+                            initialDownloadThreads
+                        }
+                        Configuration.getInstance().setTileDownloadThreads(desiredThreads.toShort())
                         isDownloading = true
                         statusText = context.getString(R.string.map_download_status_running)
                         runCatching {
@@ -204,6 +216,7 @@ fun MapDownloadScreen(
                                     mainHandler.post {
                                         isDownloading = false
                                         statusText = context.getString(R.string.map_download_status_done)
+                                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
                                         onAreaDownloaded(
                                             DownloadedArea(
                                                 north = bbox.latNorth,
@@ -221,6 +234,7 @@ fun MapDownloadScreen(
                                     mainHandler.post {
                                         isDownloading = false
                                         statusText = context.getString(R.string.map_download_status_failed, errors)
+                                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
                                     }
                                 }
 
@@ -237,6 +251,7 @@ fun MapDownloadScreen(
                         }.onFailure {
                             isDownloading = false
                             statusText = context.getString(R.string.map_download_status_failed, 1)
+                            Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
                             Toast.makeText(context, context.getString(R.string.map_download_status_failed, 1), Toast.LENGTH_SHORT).show()
                         }
                     },

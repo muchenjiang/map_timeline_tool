@@ -104,6 +104,8 @@ class MainActivity : ComponentActivity() {
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
                 var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
                 var downloadTileSourceId by remember { mutableStateOf(SettingsStore.getDownloadTileSourceId(context)) }
+                var downloadMultiThreadEnabled by remember { mutableStateOf(SettingsStore.getDownloadMultiThreadEnabled(context)) }
+                var downloadThreadCount by remember { mutableStateOf(SettingsStore.getDownloadThreadCount(context)) }
                 var mapTileSourceId by remember { mutableStateOf(mapTileSources.first().id) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
@@ -424,7 +426,9 @@ class MainActivity : ComponentActivity() {
                                     onAreaDownloaded = { area ->
                                         downloadedAreas = SettingsStore.addDownloadedArea(context, area)
                                     },
-                                    tileSource = downloadTileSource
+                                    tileSource = downloadTileSource,
+                                    useMultiThreadDownload = downloadMultiThreadEnabled,
+                                    downloadThreadCount = downloadThreadCount
                                 )
                             } else {
                                 SettingsScreen(
@@ -450,6 +454,16 @@ class MainActivity : ComponentActivity() {
                                     onDownloadTileSourceChange = {
                                         downloadTileSourceId = it
                                         SettingsStore.setDownloadTileSourceId(context, it)
+                                    },
+                                    downloadMultiThreadEnabled = downloadMultiThreadEnabled,
+                                    onDownloadMultiThreadEnabledChange = {
+                                        downloadMultiThreadEnabled = it
+                                        SettingsStore.setDownloadMultiThreadEnabled(context, it)
+                                    },
+                                    downloadThreadCount = downloadThreadCount,
+                                    onDownloadThreadCountChange = {
+                                        downloadThreadCount = it
+                                        SettingsStore.setDownloadThreadCount(context, it)
                                     },
                                     mapTileSourceId = mapTileSourceId,
                                     onMapTileSourceChange = { mapTileSourceId = it },
