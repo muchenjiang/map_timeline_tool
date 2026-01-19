@@ -2,6 +2,9 @@
     <string name="app_name">Map Timeline Tool</string>
     <string name="action_add_point">Add</string>
     <string name="action_export_csv">Export CSV</string>
+    <string name="action_import_csv">Import CSV</string>
+    <string name="toast_import_success">Imported %1$d points</string>
+    <string name="toast_import_failed">Import failed</string>
     <string name="action_clear_cache">Clear map cache</string>
     <string name="action_back">Back</string>
     <string name="action_center">Center</string>
@@ -50,6 +53,8 @@
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>
     <string name="settings_about">About</string>
+    <string name="settings_default_tags_title">Default Tags</string>
+    <string name="settings_default_tags_desc">Tags automatically added to new points</string>
     <string name="settings_language_label">Language</string>
     <string name="settings_language_follow_system">System default</string>
     <string name="settings_language_english">English</string>
@@ -62,14 +67,18 @@
     <string name="about_open_source_title">Open-source projects</string>
     <string name="about_ai_title">AI assistance</string>
     <string name="about_ai_text">This project was built with the help of AI tools.</string>
-    <string name="tag_lock">Lock</string>
-    <string name="tag_unlock">Unlock</string>
-    <string name="tag_pin_limit_message">You can lock up to three tags.</string>
+    <string name="tag_lock">Pin</string>
+    <string name="tag_unlock">Unpin</string>
+    <string name="tag_pin_limit_message">You can pin up to three tags.</string>
     <string name="tag_pin_limit_button">OK</string>
     <string name="settings_zoom_behavior_label">Zoom controls</string>
     <string name="settings_zoom_behavior_hide">Hide zoom buttons</string>
     <string name="settings_zoom_behavior_interaction">Show while using the map</string>
     <string name="settings_zoom_behavior_always">Always show zoom buttons</string>
+    <string name="settings_marker_size_label">Marker size</string>
+    <string name="settings_marker_size_value">%1$d%%</string>
+    <string name="settings_map_download_title">Download map area</string>
+    <string name="settings_map_download_desc">Download tiles by area and zoom level</string>
     <string name="settings_language_restart_title">Restart required</string>
     <string name="settings_language_restart_message">A restart is required for the new language to take effect.</string>
     <string name="settings_language_restart_now">Restart now</string>
@@ -89,4 +98,16 @@
     <string name="exit_message">Close Map Timeline Tool?</string>
     <string name="exit_button">Exit</string>
     <string name="exit_cancel_button">Cancel</string>
+    <string name="map_download_title">Download map area</string>
+    <string name="map_download_min_zoom">Min zoom: %1$d</string>
+    <string name="map_download_max_zoom">Max zoom: %1$d</string>
+    <string name="map_download_use_current_view">Use current view</string>
+    <string name="map_download_start">Download</string>
+    <string name="map_download_status_idle">Ready to download</string>
+    <string name="map_download_status_running">Downloading…</string>
+    <string name="map_download_status_running_detail">%1$d%% at zoom %2$d</string>
+    <string name="map_download_status_done">Download complete</string>
+    <string name="map_download_status_failed">Download failed (%1$d errors)</string>
+    <string name="map_download_view_selected">Selected current view</string>
+    <string name="toast_map_not_ready">Map is not ready yet</string>
 </resources>

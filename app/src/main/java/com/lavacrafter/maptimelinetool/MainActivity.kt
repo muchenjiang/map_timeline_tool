@@ -92,8 +92,12 @@ class MainActivity : ComponentActivity() {
                 var pinnedTagIds by remember { mutableStateOf(SettingsStore.getPinnedTagIds(context).toSet()) }
                 var recentTagIds by remember { mutableStateOf(SettingsStore.getRecentTagIds(context)) }
                 var zoomBehavior by remember { mutableStateOf(SettingsStore.getZoomButtonBehavior(context)) }
+                var markerScale by remember { mutableStateOf(SettingsStore.getMarkerScale(context)) }
                 var showTagPickerForAdd by remember { mutableStateOf(false) }
                 var showTagPickerForEdit by remember { mutableStateOf(false) }
+                var showDefaultTags by remember { mutableStateOf(false) }
+                var showMapDownload by remember { mutableStateOf(false) }
+                var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
@@ -121,6 +125,7 @@ class MainActivity : ComponentActivity() {
                     isCountdownPaused = true
                 }
 
+                val scope = rememberCoroutineScope()
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
@@ -135,6 +140,23 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(context, context.getString(R.string.toast_export_failed), Toast.LENGTH_SHORT).show()
                     }
                     pendingCsv = null
+                }
+                val importLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.GetContent()
+                ) { uri ->
+                    if (uri == null) return@rememberLauncherForActivityResult
+                    scope.launch {
+                        runCatching {
+                            val csv = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                            if (csv != null) {
+                                val importedPoints = com.lavacrafter.maptimelinetool.export.CsvImporter.parseCsv(csv)
+                                viewModel.importPoints(importedPoints)
+                                Toast.makeText(context, context.getString(R.string.toast_import_success, importedPoints.size), Toast.LENGTH_SHORT).show()
+                            }
+                        }.onFailure {
+                            Toast.makeText(context, context.getString(R.string.toast_import_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
@@ -184,7 +206,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                val scope = rememberCoroutineScope()
                 BackHandler(showTagPickerForEdit) { showTagPickerForEdit = false }
                 BackHandler(showTagPickerForAdd) { showTagPickerForAdd = false }
                 BackHandler(editingPoint != null) {
@@ -200,6 +221,8 @@ class MainActivity : ComponentActivity() {
                     showTagPickerForAdd = false
                 }
                 BackHandler(showAbout) { showAbout = false }
+                BackHandler(showDefaultTags) { showDefaultTags = false }
+                BackHandler(showMapDownload) { showMapDownload = false }
                 BackHandler(selectedTag != null) { selectedTag = null }
                 BackHandler(!showDialog && !showTagPickerForAdd && !showTagPickerForEdit && editingPoint == null && editingTag == null && !showAbout && selectedTag == null && sheetState.currentValue != SheetValue.Expanded) {
                     showExitDialog = true
@@ -288,6 +311,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.height(64.dp),
                             onClick = {
                                 pendingTimestamp = System.currentTimeMillis()
+                                newPointSelectedTagIds = defaultTagIds
                                 showDialog = true
                             }
                         ) {
@@ -325,6 +349,9 @@ class MainActivity : ComponentActivity() {
                                 selectedPointId = selectedPointId,
                                 onSelectPoint = { point ->
                                     selectedPointId = point.id
+                                    scope.launch {
+                                        scaffoldState.bottomSheetState.partialExpand()
+                                    }
                                 },
                                 onLongPressPoint = { point ->
                                     editingPoint = point
@@ -332,6 +359,7 @@ class MainActivity : ComponentActivity() {
                                 onEditPointFromMap = { point -> editingPoint = point },
                                 isActive = tab == 0,
                                 zoomBehavior = zoomBehavior,
+                                markerScale = markerScale,
                                 scaffoldState = scaffoldState
                             )
                             1 -> {
@@ -370,6 +398,24 @@ class MainActivity : ComponentActivity() {
                             }
                             2 -> if (showAbout) {
                                 AboutScreen(onBack = { showAbout = false })
+                            } else if (showDefaultTags) {
+                                com.lavacrafter.maptimelinetool.ui.DefaultTagsScreen(
+                                    tags = tagsState,
+                                    selectedTagIds = defaultTagIds,
+                                    onToggleTag = { tagId ->
+                                        defaultTagIds = if (defaultTagIds.contains(tagId)) {
+                                            defaultTagIds - tagId
+                                        } else {
+                                            defaultTagIds + tagId
+                                        }
+                                        SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
+                                    },
+                                    onBack = { showDefaultTags = false }
+                                )
+                            } else if (showMapDownload) {
+                                com.lavacrafter.maptimelinetool.ui.MapDownloadScreen(
+                                    onBack = { showMapDownload = false }
+                                )
                             } else {
                                 SettingsScreen(
                                     isDarkTheme = isDarkTheme,
@@ -394,7 +440,15 @@ class MainActivity : ComponentActivity() {
                                         zoomBehavior = it
                                         SettingsStore.setZoomButtonBehavior(context, it)
                                     },
+                                    markerScale = markerScale,
+                                    onMarkerScaleChange = {
+                                        markerScale = it
+                                        SettingsStore.setMarkerScale(context, it)
+                                    },
+                                    onOpenDefaultTags = { showDefaultTags = true },
+                                    onOpenMapDownload = { showMapDownload = true },
                                     onExportCsv = exportCsv,
+                                    onImportCsv = { importLauncher.launch("text/*") },
                                     onClearCache = {
                                         val cacheDir = Configuration.getInstance().osmdroidTileCache
                                         runCatching { cacheDir?.deleteRecursively() }
@@ -582,6 +636,7 @@ private fun MapWithListSheet(
     onEditPointFromMap: (com.lavacrafter.maptimelinetool.data.PointEntity) -> Unit,
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
+    markerScale: Float,
     scaffoldState: BottomSheetScaffoldState
 ) {
     BottomSheetScaffold(
@@ -605,7 +660,8 @@ private fun MapWithListSheet(
                 selectedPointId = selectedPointId,
                 onEditPoint = onEditPointFromMap,
                 isActive = isActive,
-                zoomBehavior = zoomBehavior
+                zoomBehavior = zoomBehavior,
+                markerScale = markerScale
             )
         }
     }

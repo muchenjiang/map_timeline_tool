@@ -11,6 +11,8 @@ object SettingsStore {
     private const val KEY_ZOOM_BEHAVIOR = "zoom_behavior"
     private const val KEY_LANGUAGE_PREFERENCE = "language_preference"
     private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
+    private const val KEY_DEFAULT_TAGS = "default_tags"
+    private const val KEY_MARKER_SCALE = "marker_scale"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -95,6 +97,27 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_FOLLOW_SYSTEM_THEME, enabled)
+            .apply()
+    }
+
+    fun getDefaultTagIds(context: Context): List<Long> {
+        return parseLongList(context, KEY_DEFAULT_TAGS)
+    }
+
+    fun setDefaultTagIds(context: Context, tagIds: List<Long>) {
+        saveLongList(context, KEY_DEFAULT_TAGS, tagIds)
+    }
+
+    fun getMarkerScale(context: Context): Float {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getFloat(KEY_MARKER_SCALE, 1.0f)
+            .coerceIn(0.6f, 2.0f)
+    }
+
+    fun setMarkerScale(context: Context, scale: Float) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.6f, 2.0f))
             .apply()
     }
 

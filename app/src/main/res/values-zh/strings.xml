@@ -2,6 +2,9 @@
     <string name="app_name">地图时间线工具</string>
     <string name="action_add_point">打点</string>
     <string name="action_export_csv">导出 CSV</string>
+    <string name="action_import_csv">导入 CSV</string>
+    <string name="toast_import_success">成功导入 %1$d 个打点</string>
+    <string name="toast_import_failed">导入失败</string>
     <string name="action_clear_cache">清除地图缓存</string>
     <string name="action_back">返回</string>
     <string name="action_center">居中</string>
@@ -50,6 +53,8 @@
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">开源项目</string>
     <string name="settings_about">关于</string>
+    <string name="settings_default_tags_title">默认标签</string>
+    <string name="settings_default_tags_desc">新打点时自动添加的标签</string>
     <string name="settings_language_label">语言</string>
     <string name="settings_language_follow_system">跟随系统</string>
     <string name="settings_language_english">英文</string>
@@ -62,14 +67,18 @@
     <string name="about_open_source_title">开源项目</string>
     <string name="about_ai_title">AI 说明</string>
     <string name="about_ai_text">本项目在开发过程中使用了 AI 辅助。</string>
-    <string name="tag_lock">锁定</string>
-    <string name="tag_unlock">取消锁定</string>
-    <string name="tag_pin_limit_message">最多只能锁定 3 个标签。</string>
+    <string name="tag_lock">固定</string>
+    <string name="tag_unlock">取消固定</string>
+    <string name="tag_pin_limit_message">最多只能固定 3 个标签。</string>
     <string name="tag_pin_limit_button">知道了</string>
     <string name="settings_zoom_behavior_label">缩放按钮</string>
     <string name="settings_zoom_behavior_hide">不显示</string>
     <string name="settings_zoom_behavior_interaction">操作时显示</string>
     <string name="settings_zoom_behavior_always">始终显示</string>
+    <string name="settings_marker_size_label">打点大小</string>
+    <string name="settings_marker_size_value">%1$d%%</string>
+    <string name="settings_map_download_title">下载地图区域</string>
+    <string name="settings_map_download_desc">按区域与级别下载地图瓦片</string>
     <string name="settings_language_restart_title">需要重启</string>
     <string name="settings_language_restart_message">语言更改后需要重启应用才能生效。</string>
     <string name="settings_language_restart_now">立即重启</string>
@@ -89,4 +98,16 @@
     <string name="exit_message">关闭地图时间线工具？</string>
     <string name="exit_button">退出</string>
     <string name="exit_cancel_button">取消</string>
+    <string name="map_download_title">下载地图区域</string>
+    <string name="map_download_min_zoom">最小级别：%1$d</string>
+    <string name="map_download_max_zoom">最大级别：%1$d</string>
+    <string name="map_download_use_current_view">使用当前视图</string>
+    <string name="map_download_start">开始下载</string>
+    <string name="map_download_status_idle">准备下载</string>
+    <string name="map_download_status_running">下载中…</string>
+    <string name="map_download_status_running_detail">%1$d%%，级别 %2$d</string>
+    <string name="map_download_status_done">下载完成</string>
+    <string name="map_download_status_failed">下载失败（%1$d 处错误）</string>
+    <string name="map_download_view_selected">已选择当前视图</string>
+    <string name="toast_map_not_ready">地图尚未准备好</string>
 </resources>

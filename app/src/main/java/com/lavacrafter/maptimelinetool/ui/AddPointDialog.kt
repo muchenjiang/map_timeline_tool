@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -56,14 +58,20 @@ fun AddPointDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(if (title.isBlank()) defaultTitle else title, note, createdAt, selectedTagIds) }) {
+            Button(onClick = { onConfirm(if (title.isBlank()) defaultTitle else title, note, createdAt, selectedTagIds) }) {
                 Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         },
-        title = { Text(stringResource(R.string.dialog_title_new_point)) },
+        title = {
+            Text(
+                stringResource(R.string.dialog_title_new_point),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
@@ -74,7 +82,8 @@ fun AddPointDialog(
                     },
                     label = { Text(stringResource(R.string.dialog_title_label)) },
                     placeholder = { Text(defaultTitle) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -93,9 +102,17 @@ fun AddPointDialog(
                 } else {
                     stringResource(R.string.label_auto_save_countdown, safeSeconds)
                 }
-                Text(text = countdownLabel)
+                Text(
+                    text = countdownLabel,
+                    color = if (isCountdownPaused) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = stringResource(R.string.label_quick_tags), fontWeight = FontWeight.Medium)
+                Text(
+                    text = stringResource(R.string.label_quick_tags),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 QuickTagGrid(
                     quickTags = quickTags,

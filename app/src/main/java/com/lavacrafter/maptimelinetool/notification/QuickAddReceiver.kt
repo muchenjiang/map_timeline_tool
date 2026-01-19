@@ -26,23 +26,17 @@ import java.util.Locale
 class QuickAddReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pendingResult = goAsync()
-        val lm = context.getSystemService(LocationManager::class.java)
-        val providers = lm.getProviders(true)
-        val location = providers
-            .mapNotNull { lm.getLastKnownLocation(it) }
-            .maxByOrNull { it.time }
-            ?: readCachedLocation(context)
-            ?: run {
-                showToast(context, context.getString(R.string.toast_location_failed))
-                pendingResult.finish()
-                return
-            }
-
-        val timestamp = System.currentTimeMillis()
-        val title = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
-
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                val location = com.lavacrafter.maptimelinetool.LocationUtils.getFreshLocation(context, 5000L)
+                    ?: run {
+                        showToast(context, context.getString(R.string.toast_location_failed))
+                        return@launch
+                    }
+
+                val timestamp = System.currentTimeMillis()
+                val title = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
+
                 val dao = AppDatabase.get(context).pointDao()
                 dao.insert(
                     PointEntity(
@@ -64,18 +58,7 @@ class QuickAddReceiver : BroadcastReceiver() {
 }
 
 private fun readCachedLocation(context: Context) =
-    context.getSharedPreferences(HeadingLocationOverlay.LOCATION_PREFS, Context.MODE_PRIVATE)
-        .let { prefs ->
-            if (!prefs.contains(HeadingLocationOverlay.KEY_LAT) || !prefs.contains(HeadingLocationOverlay.KEY_LON)) {
-                null
-            } else {
-                android.location.Location("cached").apply {
-                    latitude = prefs.getFloat(HeadingLocationOverlay.KEY_LAT, 0f).toDouble()
-                    longitude = prefs.getFloat(HeadingLocationOverlay.KEY_LON, 0f).toDouble()
-                    time = prefs.getLong(HeadingLocationOverlay.KEY_TIME, System.currentTimeMillis())
-                }
-            }
-        }
+    com.lavacrafter.maptimelinetool.LocationUtils.getLastKnownLocation(context)
 
 private fun showToast(context: Context, message: String) {
     Handler(Looper.getMainLooper()).post {

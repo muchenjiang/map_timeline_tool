@@ -1,6 +1,8 @@
 package com.lavacrafter.maptimelinetool.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,11 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,7 +46,12 @@ fun SettingsScreen(
     onCachePolicyChange: (MapCachePolicy) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
+    markerScale: Float,
+    onMarkerScaleChange: (Float) -> Unit,
+    onOpenDefaultTags: () -> Unit,
+    onOpenMapDownload: () -> Unit,
     onExportCsv: () -> Unit,
+    onImportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -132,8 +141,37 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onExportCsv) {
-            Text(text = stringResource(R.string.action_export_csv))
+        Text(text = stringResource(R.string.settings_marker_size_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = stringResource(R.string.settings_marker_size_value, (markerScale * 100).toInt()))
+        Slider(
+            value = markerScale,
+            onValueChange = onMarkerScaleChange,
+            valueRange = 0.6f..2.0f
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        ListItem(
+            modifier = Modifier.clickable { onOpenDefaultTags() },
+            headlineContent = { Text(stringResource(R.string.settings_default_tags_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_default_tags_desc)) }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        ListItem(
+            modifier = Modifier.clickable { onOpenMapDownload() },
+            headlineContent = { Text(stringResource(R.string.settings_map_download_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_map_download_desc)) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onExportCsv) {
+                Text(text = stringResource(R.string.action_export_csv))
+            }
+            Button(onClick = onImportCsv) {
+                Text(text = stringResource(R.string.action_import_csv))
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
