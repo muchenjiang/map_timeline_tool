@@ -50,6 +50,10 @@
     <string name="settings_cache_policy_disabled">Do not cache new maps</string>
     <string name="settings_cache_policy_wifi">Cache only on Wi-Fi</string>
     <string name="settings_cache_policy_always">Always cache maps</string>
+    <string name="settings_network_status_label">Current network: %1$s</string>
+    <string name="settings_network_status_wifi">Wi‑Fi</string>
+    <string name="settings_network_status_cellular">Mobile data</string>
+    <string name="settings_network_status_offline">Offline</string>
     <string name="settings_project_label">Project</string>
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>

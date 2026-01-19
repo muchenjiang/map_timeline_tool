@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -128,6 +129,7 @@ class MainActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
+                val networkStatus by observeNetworkStatus(context)
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
                 ) { uri ->
@@ -442,6 +444,7 @@ class MainActivity : ComponentActivity() {
                                         cachePolicy = it
                                         SettingsStore.setCachePolicy(context, it)
                                     },
+                                    networkStatus = networkStatus,
                                     zoomBehavior = zoomBehavior,
                                     onZoomBehaviorChange = {
                                         zoomBehavior = it
@@ -694,5 +697,48 @@ private fun vibrateOnce(context: Context) {
     } else {
         @Suppress("DEPRECATION")
         vibrator.vibrate(50)
+    }
+}
+
+enum class NetworkStatus { WIFI, CELLULAR, NONE }
+
+@Composable
+fun observeNetworkStatus(context: Context): androidx.compose.runtime.State<NetworkStatus> {
+    val state = remember { mutableStateOf(getNetworkStatus(context)) }
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                state.value = getNetworkStatus(context)
+            }
+
+            override fun onLost(network: android.net.Network) {
+                state.value = getNetworkStatus(context)
+            }
+
+            override fun onCapabilitiesChanged(network: android.net.Network, networkCapabilities: android.net.NetworkCapabilities) {
+                state.value = when {
+                    networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
+                    networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
+                    else -> NetworkStatus.NONE
+                }
+            }
+        }
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        onDispose {
+            runCatching { connectivityManager.unregisterNetworkCallback(callback) }
+        }
+    }
+    return state
+}
+
+private fun getNetworkStatus(context: Context): NetworkStatus {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return NetworkStatus.NONE
+    val caps = connectivityManager.getNetworkCapabilities(network) ?: return NetworkStatus.NONE
+    return when {
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
+        else -> NetworkStatus.NONE
     }
 }

@@ -163,7 +163,7 @@ fun MapDownloadScreen(
                         Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                         return@OutlinedButton
                     }
-                    selectedBox = map.boundingBox
+                    selectedBox = visibleBoundingBox(map)
                     Toast.makeText(context, context.getString(R.string.map_download_view_selected), Toast.LENGTH_SHORT).show()
                 }) {
                     Text(text = stringResource(R.string.map_download_use_current_view))
@@ -175,62 +175,68 @@ fun MapDownloadScreen(
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        val bbox = selectedBox ?: map.boundingBox
+                        val bbox = selectedBox ?: visibleBoundingBox(map)
                         if (bbox == null) {
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        onAreaDownloaded(
-                            DownloadedArea(
-                                north = bbox.latNorth,
-                                south = bbox.latSouth,
-                                east = bbox.lonEast,
-                                west = bbox.lonWest,
-                                minZoom = minZoom,
-                                maxZoom = maxZoom
-                            )
-                        )
                         val cacheManager = CacheManager(map)
                         isDownloading = true
                         statusText = context.getString(R.string.map_download_status_running)
-                        cacheManager.downloadAreaAsync(context, bbox, minZoom, maxZoom, object : CacheManager.CacheManagerCallback {
-                            override fun downloadStarted() {
-                                mainHandler.post {
-                                    isDownloading = true
-                                    statusText = context.getString(R.string.map_download_status_running)
+                        runCatching {
+                            cacheManager.downloadAreaAsync(context, bbox, minZoom, maxZoom, object : CacheManager.CacheManagerCallback {
+                                override fun downloadStarted() {
+                                    mainHandler.post {
+                                        isDownloading = true
+                                        statusText = context.getString(R.string.map_download_status_running)
+                                    }
                                 }
-                            }
 
-                            override fun setPossibleTilesInArea(total: Int) {
-                                mainHandler.post {
-                                    statusText = context.getString(R.string.map_download_status_running_detail, 0, minZoom)
+                                override fun setPossibleTilesInArea(total: Int) {
+                                    mainHandler.post {
+                                        statusText = context.getString(R.string.map_download_status_running_detail, 0, minZoom)
+                                    }
                                 }
-                            }
 
-                            override fun onTaskComplete() {
-                                mainHandler.post {
-                                    isDownloading = false
-                                    statusText = context.getString(R.string.map_download_status_done)
+                                override fun onTaskComplete() {
+                                    mainHandler.post {
+                                        isDownloading = false
+                                        statusText = context.getString(R.string.map_download_status_done)
+                                        onAreaDownloaded(
+                                            DownloadedArea(
+                                                north = bbox.latNorth,
+                                                south = bbox.latSouth,
+                                                east = bbox.lonEast,
+                                                west = bbox.lonWest,
+                                                minZoom = minZoom,
+                                                maxZoom = maxZoom
+                                            )
+                                        )
+                                    }
                                 }
-                            }
 
-                            override fun onTaskFailed(errors: Int) {
-                                mainHandler.post {
-                                    isDownloading = false
-                                    statusText = context.getString(R.string.map_download_status_failed, errors)
+                                override fun onTaskFailed(errors: Int) {
+                                    mainHandler.post {
+                                        isDownloading = false
+                                        statusText = context.getString(R.string.map_download_status_failed, errors)
+                                    }
                                 }
-                            }
 
-                            override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
-                                mainHandler.post {
-                                    statusText = context.getString(
-                                        R.string.map_download_status_running_detail,
-                                        progress,
-                                        currentZoomLevel
-                                    )
+                                override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
+                                    mainHandler.post {
+                                        statusText = context.getString(
+                                            R.string.map_download_status_running_detail,
+                                            progress,
+                                            currentZoomLevel
+                                        )
+                                    }
                                 }
-                            }
-                        })
+                            })
+                        }.onFailure {
+                            isDownloading = false
+                            statusText = context.getString(R.string.map_download_status_failed, 1)
+                            Toast.makeText(context, context.getString(R.string.map_download_status_failed, 1), Toast.LENGTH_SHORT).show()
+                        }
                     },
                     enabled = !isDownloading
                 ) {
@@ -264,4 +270,17 @@ fun MapDownloadScreen(
             }
         )
     }
+}
+
+private fun visibleBoundingBox(map: MapView): BoundingBox? {
+    if (map.width == 0 || map.height == 0) return map.boundingBox
+    val paddingPx = (12 * map.resources.displayMetrics.density).toInt()
+    val left = paddingPx
+    val top = paddingPx
+    val right = map.width - paddingPx
+    val bottom = map.height - paddingPx
+    val projection = map.projection ?: return map.boundingBox
+    val northWest = projection.fromPixels(left, top) as? GeoPoint ?: return map.boundingBox
+    val southEast = projection.fromPixels(right, bottom) as? GeoPoint ?: return map.boundingBox
+    return BoundingBox.fromGeoPoints(listOf(northWest, southEast))
 }

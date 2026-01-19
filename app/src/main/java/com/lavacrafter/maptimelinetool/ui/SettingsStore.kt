@@ -186,14 +186,45 @@ object SettingsStore {
     }
 
     private fun dedupeAreas(areas: List<DownloadedArea>): List<DownloadedArea> {
-        val seen = LinkedHashMap<String, DownloadedArea>()
-        areas.forEach { area ->
-            val key = area.boundsKey()
-            if (!seen.containsKey(key)) {
-                seen[key] = area
+        if (areas.isEmpty()) return emptyList()
+        val sorted = areas.sortedBy { it.createdAt }
+        val merged = mutableListOf<DownloadedArea>()
+        for (area in sorted) {
+            val existingIndex = merged.indexOfFirst { candidate ->
+                zoomOverlaps(candidate, area) && bboxOverlaps(candidate, area)
+            }
+            if (existingIndex >= 0) {
+                val candidate = merged[existingIndex]
+                merged[existingIndex] = mergeAreas(candidate, area)
+            } else {
+                merged.add(area)
             }
         }
-        return seen.values.toList()
+        return merged
+    }
+
+    private fun zoomOverlaps(a: DownloadedArea, b: DownloadedArea): Boolean {
+        return a.minZoom <= b.maxZoom && b.minZoom <= a.maxZoom
+    }
+
+    private fun bboxOverlaps(a: DownloadedArea, b: DownloadedArea): Boolean {
+        val north = minOf(a.north, b.north)
+        val south = maxOf(a.south, b.south)
+        val west = maxOf(a.west, b.west)
+        val east = minOf(a.east, b.east)
+        return north >= south && east >= west
+    }
+
+    private fun mergeAreas(a: DownloadedArea, b: DownloadedArea): DownloadedArea {
+        return DownloadedArea(
+            north = maxOf(a.north, b.north),
+            south = minOf(a.south, b.south),
+            east = maxOf(a.east, b.east),
+            west = minOf(a.west, b.west),
+            minZoom = minOf(a.minZoom, b.minZoom),
+            maxZoom = maxOf(a.maxZoom, b.maxZoom),
+            createdAt = minOf(a.createdAt, b.createdAt)
+        )
     }
 
     private fun parseLongList(context: Context, key: String): List<Long> {

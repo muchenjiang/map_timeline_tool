@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.NetworkStatus
 
 @Composable
 fun SettingsScreen(
@@ -45,6 +46,7 @@ fun SettingsScreen(
     onTimeoutSecondsChange: (Int) -> Unit,
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
+    networkStatus: NetworkStatus,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
     markerScale: Float,
@@ -109,6 +111,13 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(24.dp))
         Text(text = stringResource(R.string.settings_cache_policy_label))
         Spacer(modifier = Modifier.height(8.dp))
+        val networkLabel = when (networkStatus) {
+            NetworkStatus.WIFI -> stringResource(R.string.settings_network_status_wifi)
+            NetworkStatus.CELLULAR -> stringResource(R.string.settings_network_status_cellular)
+            NetworkStatus.NONE -> stringResource(R.string.settings_network_status_offline)
+        }
+        Text(text = stringResource(R.string.settings_network_status_label, networkLabel))
+        Spacer(modifier = Modifier.height(4.dp))
         CachePolicyOption(
             label = stringResource(R.string.settings_cache_policy_disabled),
             selected = cachePolicy == MapCachePolicy.DISABLED,
