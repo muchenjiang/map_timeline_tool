@@ -75,6 +75,10 @@
     <string name="settings_zoom_behavior_hide">不显示</string>
     <string name="settings_zoom_behavior_interaction">操作时显示</string>
     <string name="settings_zoom_behavior_always">始终显示</string>
+    <string name="settings_marker_size_label">打点大小</string>
+    <string name="settings_marker_size_value">%1$d%%</string>
+    <string name="settings_map_download_title">下载地图区域</string>
+    <string name="settings_map_download_desc">按区域与级别下载地图瓦片</string>
     <string name="settings_language_restart_title">需要重启</string>
     <string name="settings_language_restart_message">语言更改后需要重启应用才能生效。</string>
     <string name="settings_language_restart_now">立即重启</string>
@@ -94,4 +98,16 @@
     <string name="exit_message">关闭地图时间线工具？</string>
     <string name="exit_button">退出</string>
     <string name="exit_cancel_button">取消</string>
+    <string name="map_download_title">下载地图区域</string>
+    <string name="map_download_min_zoom">最小级别：%1$d</string>
+    <string name="map_download_max_zoom">最大级别：%1$d</string>
+    <string name="map_download_use_current_view">使用当前视图</string>
+    <string name="map_download_start">开始下载</string>
+    <string name="map_download_status_idle">准备下载</string>
+    <string name="map_download_status_running">下载中…</string>
+    <string name="map_download_status_running_detail">%1$d%%，级别 %2$d</string>
+    <string name="map_download_status_done">下载完成</string>
+    <string name="map_download_status_failed">下载失败（%1$d 处错误）</string>
+    <string name="map_download_view_selected">已选择当前视图</string>
+    <string name="toast_map_not_ready">地图尚未准备好</string>
 </resources>

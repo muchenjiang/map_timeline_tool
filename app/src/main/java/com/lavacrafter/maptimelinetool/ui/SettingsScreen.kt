@@ -19,6 +19,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,7 +46,10 @@ fun SettingsScreen(
     onCachePolicyChange: (MapCachePolicy) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
+    markerScale: Float,
+    onMarkerScaleChange: (Float) -> Unit,
     onOpenDefaultTags: () -> Unit,
+    onOpenMapDownload: () -> Unit,
     onExportCsv: () -> Unit,
     onImportCsv: () -> Unit,
     onClearCache: () -> Unit,
@@ -137,10 +141,27 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text(text = stringResource(R.string.settings_marker_size_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = stringResource(R.string.settings_marker_size_value, (markerScale * 100).toInt()))
+        Slider(
+            value = markerScale,
+            onValueChange = onMarkerScaleChange,
+            valueRange = 0.6f..2.0f
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         ListItem(
             modifier = Modifier.clickable { onOpenDefaultTags() },
             headlineContent = { Text(stringResource(R.string.settings_default_tags_title)) },
             supportingContent = { Text(stringResource(R.string.settings_default_tags_desc)) }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        ListItem(
+            modifier = Modifier.clickable { onOpenMapDownload() },
+            headlineContent = { Text(stringResource(R.string.settings_map_download_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_map_download_desc)) }
         )
 
         Spacer(modifier = Modifier.height(24.dp))

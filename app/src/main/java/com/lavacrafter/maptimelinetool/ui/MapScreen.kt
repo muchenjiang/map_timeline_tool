@@ -56,7 +56,8 @@ fun MapScreen(
     selectedPointId: Long?,
     onEditPoint: (PointEntity) -> Unit,
     isActive: Boolean,
-    zoomBehavior: ZoomButtonBehavior
+    zoomBehavior: ZoomButtonBehavior,
+    markerScale: Float
 ) {
     val context = LocalContext.current
     val sdf = remember {
@@ -162,7 +163,7 @@ fun MapScreen(
                             R.string.label_utc_time,
                             sdf.format(Date(p.timestamp))
                         )
-                        icon = createCounterIcon(context, order?.toString().orEmpty(), color)
+                        icon = createCounterIcon(context, order?.toString().orEmpty(), color, markerScale)
                         infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(org.osmdroid.library.R.layout.bonuspack_bubble, map) {
                             override fun onOpen(item: Any?) {
                                 super.onOpen(item)
@@ -261,9 +262,13 @@ fun MapScreen(
 private fun createCounterIcon(
     context: android.content.Context,
     text: String,
-    color: Int
+    color: Int,
+    scale: Float
 ): android.graphics.drawable.BitmapDrawable {
-    val size = (24 * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
+    val density = context.resources.displayMetrics.density
+    val size = (24 * density * scale)
+        .toInt()
+        .coerceIn((12 * density).toInt(), (64 * density).toInt())
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -272,7 +277,7 @@ private fun createCounterIcon(
     }
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = Color.WHITE
-        textSize = 32f
+        textSize = 32f * scale.coerceIn(0.6f, 2.0f)
         textAlign = Paint.Align.CENTER
         typeface = android.graphics.Typeface.DEFAULT_BOLD
     }

@@ -75,6 +75,10 @@
     <string name="settings_zoom_behavior_hide">Hide zoom buttons</string>
     <string name="settings_zoom_behavior_interaction">Show while using the map</string>
     <string name="settings_zoom_behavior_always">Always show zoom buttons</string>
+    <string name="settings_marker_size_label">Marker size</string>
+    <string name="settings_marker_size_value">%1$d%%</string>
+    <string name="settings_map_download_title">Download map area</string>
+    <string name="settings_map_download_desc">Download tiles by area and zoom level</string>
     <string name="settings_language_restart_title">Restart required</string>
     <string name="settings_language_restart_message">A restart is required for the new language to take effect.</string>
     <string name="settings_language_restart_now">Restart now</string>
@@ -94,4 +98,16 @@
     <string name="exit_message">Close Map Timeline Tool?</string>
     <string name="exit_button">Exit</string>
     <string name="exit_cancel_button">Cancel</string>
+    <string name="map_download_title">Download map area</string>
+    <string name="map_download_min_zoom">Min zoom: %1$d</string>
+    <string name="map_download_max_zoom">Max zoom: %1$d</string>
+    <string name="map_download_use_current_view">Use current view</string>
+    <string name="map_download_start">Download</string>
+    <string name="map_download_status_idle">Ready to download</string>
+    <string name="map_download_status_running">Downloading…</string>
+    <string name="map_download_status_running_detail">%1$d%% at zoom %2$d</string>
+    <string name="map_download_status_done">Download complete</string>
+    <string name="map_download_status_failed">Download failed (%1$d errors)</string>
+    <string name="map_download_view_selected">Selected current view</string>
+    <string name="toast_map_not_ready">Map is not ready yet</string>
 </resources>
