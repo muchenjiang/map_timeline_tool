@@ -55,6 +55,11 @@
         <string name="settings_network_status_wifi">Wi‑Fi</string>
         <string name="settings_network_status_cellular">移动数据</string>
         <string name="settings_network_status_offline">离线</string>
+        <string name="settings_download_source_label">下载源</string>
+        <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
+        <string name="tile_source_wikimedia">Wikimedia 地图</string>
+        <string name="tile_source_attribution_openstreetmap">© OpenStreetMap 贡献者</string>
+        <string name="tile_source_attribution_wikimedia">Wikimedia 地图 | 地图数据 © OpenStreetMap 贡献者</string>
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">开源项目</string>
     <string name="settings_about">关于</string>

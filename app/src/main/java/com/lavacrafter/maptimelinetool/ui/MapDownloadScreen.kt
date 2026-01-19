@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.lavacrafter.maptimelinetool.LocationUtils
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.ui.DownloadTileSource
 import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -49,7 +49,8 @@ import kotlin.math.roundToInt
 @Composable
 fun MapDownloadScreen(
     onBack: () -> Unit,
-    onAreaDownloaded: (DownloadedArea) -> Unit
+    onAreaDownloaded: (DownloadedArea) -> Unit,
+    tileSource: DownloadTileSource
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
@@ -101,7 +102,7 @@ fun MapDownloadScreen(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
-                            setTileSource(TileSourceFactory.MAPNIK)
+                            setTileSource(tileSource.toOsmdroidSource(viewContext))
                             setMultiTouchControls(true)
                             setBuiltInZoomControls(false)
                             setUseDataConnection(true)
@@ -110,6 +111,7 @@ fun MapDownloadScreen(
                         }
                     },
                     update = { map ->
+                        map.setTileSource(tileSource.toOsmdroidSource(context))
                         mapView = map
                     }
                 )

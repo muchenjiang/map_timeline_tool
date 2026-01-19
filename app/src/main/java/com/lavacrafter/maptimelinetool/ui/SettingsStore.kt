@@ -14,6 +14,7 @@ object SettingsStore {
     private const val KEY_DEFAULT_TAGS = "default_tags"
     private const val KEY_MARKER_SCALE = "marker_scale"
     private const val KEY_DOWNLOADED_AREAS = "downloaded_areas"
+    private const val KEY_DOWNLOAD_TILE_SOURCE = "download_tile_source"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -119,6 +120,19 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.3f, 1.75f))
+            .apply()
+    }
+
+    fun getDownloadTileSourceId(context: Context): String {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DOWNLOAD_TILE_SOURCE, downloadTileSources.first().id)
+            ?: downloadTileSources.first().id
+    }
+
+    fun setDownloadTileSourceId(context: Context, sourceId: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DOWNLOAD_TILE_SOURCE, sourceId)
             .apply()
     }
 

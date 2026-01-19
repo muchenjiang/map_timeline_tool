@@ -62,6 +62,7 @@ import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
 import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.downloadTileSourceById
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.applyLanguagePreference
@@ -100,6 +101,7 @@ class MainActivity : ComponentActivity() {
                 var showMapDownload by remember { mutableStateOf(false) }
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
                 var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
+                var downloadTileSourceId by remember { mutableStateOf(SettingsStore.getDownloadTileSourceId(context)) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
@@ -288,6 +290,7 @@ class MainActivity : ComponentActivity() {
                     val recent = recentTagIds.mapNotNull { id -> tagsState.firstOrNull { it.id == id } }
                     (pinned + recent).distinctBy { it.id }.take(3)
                 }
+                val downloadTileSource = remember(downloadTileSourceId) { downloadTileSourceById(downloadTileSourceId) }
                 val exportCsv: () -> Unit = {
                     scope.launch {
                         val points = viewModel.getAllPoints()
@@ -423,7 +426,8 @@ class MainActivity : ComponentActivity() {
                                     onBack = { showMapDownload = false },
                                     onAreaDownloaded = { area ->
                                         downloadedAreas = SettingsStore.addDownloadedArea(context, area)
-                                    }
+                                    },
+                                    tileSource = downloadTileSource
                                 )
                             } else {
                                 SettingsScreen(
@@ -445,6 +449,11 @@ class MainActivity : ComponentActivity() {
                                         SettingsStore.setCachePolicy(context, it)
                                     },
                                     networkStatus = networkStatus,
+                                    selectedDownloadTileSourceId = downloadTileSourceId,
+                                    onDownloadTileSourceChange = {
+                                        downloadTileSourceId = it
+                                        SettingsStore.setDownloadTileSourceId(context, it)
+                                    },
                                     zoomBehavior = zoomBehavior,
                                     onZoomBehaviorChange = {
                                         zoomBehavior = it

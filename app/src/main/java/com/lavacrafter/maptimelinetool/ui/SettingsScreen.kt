@@ -47,6 +47,8 @@ fun SettingsScreen(
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
     networkStatus: NetworkStatus,
+    selectedDownloadTileSourceId: String,
+    onDownloadTileSourceChange: (String) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
     markerScale: Float,
@@ -118,6 +120,25 @@ fun SettingsScreen(
         }
         Text(text = stringResource(R.string.settings_network_status_label, networkLabel))
         Spacer(modifier = Modifier.height(4.dp))
+        Text(text = stringResource(R.string.settings_download_source_label))
+        Spacer(modifier = Modifier.height(8.dp))
+        downloadTileSources.forEach { source ->
+            val isSelected = selectedDownloadTileSourceId == source.id
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onDownloadTileSourceChange(source.id) }
+            ) {
+                RadioButton(selected = isSelected, onClick = { onDownloadTileSourceChange(source.id) })
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(text = stringResource(source.labelRes))
+                    Text(text = stringResource(source.attributionRes))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         CachePolicyOption(
             label = stringResource(R.string.settings_cache_policy_disabled),
             selected = cachePolicy == MapCachePolicy.DISABLED,

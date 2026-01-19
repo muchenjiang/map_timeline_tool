@@ -54,6 +54,11 @@
     <string name="settings_network_status_wifi">Wi‑Fi</string>
     <string name="settings_network_status_cellular">Mobile data</string>
     <string name="settings_network_status_offline">Offline</string>
+    <string name="settings_download_source_label">Download source</string>
+    <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
+    <string name="tile_source_wikimedia">Wikimedia Maps</string>
+    <string name="tile_source_attribution_openstreetmap">© OpenStreetMap contributors</string>
+    <string name="tile_source_attribution_wikimedia">Wikimedia maps | Map data © OpenStreetMap contributors</string>
     <string name="settings_project_label">Project</string>
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>
