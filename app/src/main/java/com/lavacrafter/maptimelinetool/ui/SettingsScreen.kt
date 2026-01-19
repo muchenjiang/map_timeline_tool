@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.lavacrafter.maptimelinetool.ui
 
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -30,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.NetworkStatus
+import com.lavacrafter.maptimelinetool.data.TagEntity
 
 @Composable
 fun SettingsScreen(
@@ -68,6 +74,9 @@ fun SettingsScreen(
     onImportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit,
+    defaultTags: List<TagEntity>,
+    selectedDefaultTagIds: Set<Long>,
+    onToggleDefaultTag: (Long) -> Unit,
     route: SettingsRoute,
     onNavigateTo: (SettingsRoute) -> Unit,
     onNavigateBack: () -> Unit
@@ -112,6 +121,9 @@ fun SettingsScreen(
             onBack = onNavigateBack
         )
         SettingsRoute.DefaultTags -> DefaultTagsScreen(
+            tags = defaultTags,
+            selectedTagIds = selectedDefaultTagIds,
+            onToggleTag = onToggleDefaultTag,
             onBack = onNavigateBack
         )
     }

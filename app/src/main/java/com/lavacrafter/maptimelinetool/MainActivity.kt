@@ -61,8 +61,10 @@ import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
 import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
+import com.lavacrafter.maptimelinetool.ui.SettingsRoute
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
 import com.lavacrafter.maptimelinetool.ui.downloadTileSourceById
+import com.lavacrafter.maptimelinetool.ui.mapTileSources
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.applyLanguagePreference
@@ -97,11 +99,12 @@ class MainActivity : ComponentActivity() {
                 var markerScale by remember { mutableStateOf(SettingsStore.getMarkerScale(context)) }
                 var showTagPickerForAdd by remember { mutableStateOf(false) }
                 var showTagPickerForEdit by remember { mutableStateOf(false) }
-                var showDefaultTags by remember { mutableStateOf(false) }
                 var showMapDownload by remember { mutableStateOf(false) }
+                var settingsRoute by remember { mutableStateOf<SettingsRoute>(SettingsRoute.Main) }
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
                 var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
                 var downloadTileSourceId by remember { mutableStateOf(SettingsStore.getDownloadTileSourceId(context)) }
+                var mapTileSourceId by remember { mutableStateOf(mapTileSources.first().id) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
@@ -115,6 +118,14 @@ class MainActivity : ComponentActivity() {
 
                 val recordRecentTag: (Long) -> Unit = { tagId ->
                     recentTagIds = SettingsStore.addRecentTagId(context, tagId)
+                }
+                val toggleDefaultTag: (Long) -> Unit = { tagId ->
+                    defaultTagIds = if (defaultTagIds.contains(tagId)) {
+                        defaultTagIds - tagId
+                    } else {
+                        defaultTagIds + tagId
+                    }
+                    SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
                 }
                 val toggleNewPointTag: (Long) -> Unit = { tagId ->
                     newPointSelectedTagIds = if (newPointSelectedTagIds.contains(tagId)) {
@@ -226,8 +237,8 @@ class MainActivity : ComponentActivity() {
                     showTagPickerForAdd = false
                 }
                 BackHandler(showAbout) { showAbout = false }
-                BackHandler(showDefaultTags) { showDefaultTags = false }
                 BackHandler(showMapDownload) { showMapDownload = false }
+                BackHandler(tab == 2 && settingsRoute != SettingsRoute.Main) { settingsRoute = SettingsRoute.Main }
                 BackHandler(selectedTag != null) { selectedTag = null }
                 BackHandler(!showDialog && !showTagPickerForAdd && !showTagPickerForEdit && editingPoint == null && editingTag == null && !showAbout && selectedTag == null && sheetState.currentValue != SheetValue.Expanded) {
                     showExitDialog = true
@@ -407,20 +418,6 @@ class MainActivity : ComponentActivity() {
                             }
                             2 -> if (showAbout) {
                                 AboutScreen(onBack = { showAbout = false })
-                            } else if (showDefaultTags) {
-                                com.lavacrafter.maptimelinetool.ui.DefaultTagsScreen(
-                                    tags = tagsState,
-                                    selectedTagIds = defaultTagIds,
-                                    onToggleTag = { tagId ->
-                                        defaultTagIds = if (defaultTagIds.contains(tagId)) {
-                                            defaultTagIds - tagId
-                                        } else {
-                                            defaultTagIds + tagId
-                                        }
-                                        SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
-                                    },
-                                    onBack = { showDefaultTags = false }
-                                )
                             } else if (showMapDownload) {
                                 com.lavacrafter.maptimelinetool.ui.MapDownloadScreen(
                                     onBack = { showMapDownload = false },
@@ -454,6 +451,8 @@ class MainActivity : ComponentActivity() {
                                         downloadTileSourceId = it
                                         SettingsStore.setDownloadTileSourceId(context, it)
                                     },
+                                    mapTileSourceId = mapTileSourceId,
+                                    onMapTileSourceChange = { mapTileSourceId = it },
                                     zoomBehavior = zoomBehavior,
                                     onZoomBehaviorChange = {
                                         zoomBehavior = it
@@ -464,7 +463,6 @@ class MainActivity : ComponentActivity() {
                                         markerScale = it
                                         SettingsStore.setMarkerScale(context, it)
                                     },
-                                    onOpenDefaultTags = { showDefaultTags = true },
                                     onOpenMapDownload = { showMapDownload = true },
                                     downloadedAreas = downloadedAreas,
                                     onRemoveDownloadedArea = { area ->
@@ -484,7 +482,13 @@ class MainActivity : ComponentActivity() {
                                             Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
                                         }
                                     },
-                                    onOpenAbout = { showAbout = true }
+                                    onOpenAbout = { showAbout = true },
+                                    defaultTags = tagsState,
+                                    selectedDefaultTagIds = defaultTagIds,
+                                    onToggleDefaultTag = toggleDefaultTag,
+                                    route = settingsRoute,
+                                    onNavigateTo = { settingsRoute = it },
+                                    onNavigateBack = { settingsRoute = SettingsRoute.Main }
                                 )
                             }
                         }

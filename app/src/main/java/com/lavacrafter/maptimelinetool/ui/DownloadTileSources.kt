@@ -48,3 +48,5 @@ val downloadTileSources = listOf(
 fun downloadTileSourceById(id: String): DownloadTileSource {
     return downloadTileSources.firstOrNull { it.id == id } ?: downloadTileSources.first()
 }
+
+val mapTileSources = downloadTileSources
