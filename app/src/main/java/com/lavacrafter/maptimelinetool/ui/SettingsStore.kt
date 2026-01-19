@@ -13,6 +13,7 @@ object SettingsStore {
     private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
     private const val KEY_DEFAULT_TAGS = "default_tags"
     private const val KEY_MARKER_SCALE = "marker_scale"
+    private const val KEY_DOWNLOADED_AREAS = "downloaded_areas"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -111,14 +112,88 @@ object SettingsStore {
     fun getMarkerScale(context: Context): Float {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getFloat(KEY_MARKER_SCALE, 1.0f)
-            .coerceIn(0.6f, 2.0f)
+            .coerceIn(0.3f, 1.75f)
     }
 
     fun setMarkerScale(context: Context, scale: Float) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.6f, 2.0f))
+            .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.3f, 1.75f))
             .apply()
+    }
+
+    fun getDownloadedAreas(context: Context): List<DownloadedArea> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DOWNLOADED_AREAS, null)
+            ?: return emptyList()
+        return runCatching {
+            val array = org.json.JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    add(
+                        DownloadedArea(
+                            north = obj.getDouble("north"),
+                            south = obj.getDouble("south"),
+                            east = obj.getDouble("east"),
+                            west = obj.getDouble("west"),
+                            minZoom = obj.getInt("minZoom"),
+                            maxZoom = obj.getInt("maxZoom"),
+                            createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                        )
+                    )
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun addDownloadedArea(context: Context, area: DownloadedArea): List<DownloadedArea> {
+        val updated = getDownloadedAreas(context).toMutableList().apply { add(area) }
+        val deduped = dedupeAreas(updated)
+        saveDownloadedAreas(context, deduped)
+        return deduped
+    }
+
+    fun removeDownloadedArea(context: Context, area: DownloadedArea): List<DownloadedArea> {
+        val updated = getDownloadedAreas(context).filterNot { it.boundsKey() == area.boundsKey() }
+        saveDownloadedAreas(context, updated)
+        return updated
+    }
+
+    fun dedupeDownloadedAreas(context: Context): List<DownloadedArea> {
+        val deduped = dedupeAreas(getDownloadedAreas(context))
+        saveDownloadedAreas(context, deduped)
+        return deduped
+    }
+
+    private fun saveDownloadedAreas(context: Context, areas: List<DownloadedArea>) {
+        val array = org.json.JSONArray()
+        areas.forEach { area ->
+            val obj = org.json.JSONObject()
+            obj.put("north", area.north)
+            obj.put("south", area.south)
+            obj.put("east", area.east)
+            obj.put("west", area.west)
+            obj.put("minZoom", area.minZoom)
+            obj.put("maxZoom", area.maxZoom)
+            obj.put("createdAt", area.createdAt)
+            array.put(obj)
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DOWNLOADED_AREAS, array.toString())
+            .apply()
+    }
+
+    private fun dedupeAreas(areas: List<DownloadedArea>): List<DownloadedArea> {
+        val seen = LinkedHashMap<String, DownloadedArea>()
+        areas.forEach { area ->
+            val key = area.boundsKey()
+            if (!seen.containsKey(key)) {
+                seen[key] = area
+            }
+        }
+        return seen.values.toList()
     }
 
     private fun parseLongList(context: Context, key: String): List<Long> {

@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -26,21 +31,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.lavacrafter.maptimelinetool.LocationUtils
 import com.lavacrafter.maptimelinetool.R
 import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapDownloadScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onAreaDownloaded: (DownloadedArea) -> Unit
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
@@ -49,6 +58,7 @@ fun MapDownloadScreen(
     var maxZoom by remember { mutableStateOf(14) }
     var isDownloading by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(context.getString(R.string.map_download_status_idle)) }
+    var showHelp by remember { mutableStateOf(false) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     Scaffold(
@@ -58,6 +68,11 @@ fun MapDownloadScreen(
                 navigationIcon = {
                     OutlinedButton(onClick = onBack) {
                         Text(text = stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Text("?")
                     }
                 }
             )
@@ -70,26 +85,54 @@ fun MapDownloadScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AndroidView(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(320.dp),
-                factory = { viewContext ->
-                    MapView(viewContext).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)
-                        controller.setZoom(12.0)
-                        mapView = this
+                    .height(320.dp)
+                    .clipToBounds()
+            ) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp),
+                    factory = { viewContext ->
+                        MapView(viewContext).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                            setBuiltInZoomControls(false)
+                            setUseDataConnection(true)
+                            controller.setZoom(12.0)
+                            mapView = this
+                        }
+                    },
+                    update = { map ->
+                        mapView = map
                     }
-                },
-                update = { map ->
-                    mapView = map
+                )
+
+                FloatingActionButton(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(44.dp),
+                    onClick = {
+                        val map = mapView ?: return@FloatingActionButton
+                        val loc = LocationUtils.getLastKnownLocation(context)
+                        if (loc == null) {
+                            Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                        } else {
+                            map.controller.setZoom(15.0)
+                            map.controller.setCenter(GeoPoint(loc.latitude, loc.longitude))
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.action_center))
                 }
-            )
+            }
 
             Text(text = stringResource(R.string.map_download_min_zoom, minZoom))
             Slider(
@@ -137,6 +180,16 @@ fun MapDownloadScreen(
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
+                        onAreaDownloaded(
+                            DownloadedArea(
+                                north = bbox.latNorth,
+                                south = bbox.latSouth,
+                                east = bbox.lonEast,
+                                west = bbox.lonWest,
+                                minZoom = minZoom,
+                                maxZoom = maxZoom
+                            )
+                        )
                         val cacheManager = CacheManager(map)
                         isDownloading = true
                         statusText = context.getString(R.string.map_download_status_running)
@@ -197,5 +250,18 @@ fun MapDownloadScreen(
                 Text(text = stringResource(R.string.action_back))
             }
         }
+    }
+
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            title = { Text(stringResource(R.string.map_download_help_title)) },
+            text = { Text(stringResource(R.string.map_download_help_body)) },
+            confirmButton = {
+                Button(onClick = { showHelp = false }) {
+                    Text(stringResource(R.string.action_done))
+                }
+            }
+        )
     }
 }

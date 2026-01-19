@@ -57,7 +57,8 @@ fun MapScreen(
     onEditPoint: (PointEntity) -> Unit,
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
-    markerScale: Float
+    markerScale: Float,
+    downloadedOnly: Boolean
 ) {
     val context = LocalContext.current
     val sdf = remember {
@@ -137,6 +138,7 @@ fun MapScreen(
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
+                    setUseDataConnection(!downloadedOnly)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
@@ -146,6 +148,7 @@ fun MapScreen(
                 }
             },
             update = { map ->
+                map.setUseDataConnection(!downloadedOnly)
                 val signature = points.map { it.id }
                 if (overlaysReady && signature == lastOverlaySignature) {
                     map.invalidate()
@@ -266,9 +269,10 @@ private fun createCounterIcon(
     scale: Float
 ): android.graphics.drawable.BitmapDrawable {
     val density = context.resources.displayMetrics.density
-    val size = (24 * density * scale)
+    val normalized = scale.coerceIn(0.3f, 1.75f)
+    val size = (24 * density * normalized)
         .toInt()
-        .coerceIn((12 * density).toInt(), (64 * density).toInt())
+        .coerceIn((10 * density).toInt(), (70 * density).toInt())
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -277,7 +281,7 @@ private fun createCounterIcon(
     }
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = Color.WHITE
-        textSize = 32f * scale.coerceIn(0.6f, 2.0f)
+        textSize = 32f * normalized
         textAlign = Paint.Align.CENTER
         typeface = android.graphics.Typeface.DEFAULT_BOLD
     }

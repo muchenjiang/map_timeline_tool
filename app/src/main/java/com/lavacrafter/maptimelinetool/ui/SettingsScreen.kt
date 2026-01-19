@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -50,6 +51,9 @@ fun SettingsScreen(
     onMarkerScaleChange: (Float) -> Unit,
     onOpenDefaultTags: () -> Unit,
     onOpenMapDownload: () -> Unit,
+    downloadedAreas: List<DownloadedArea>,
+    onRemoveDownloadedArea: (DownloadedArea) -> Unit,
+    onDeduplicateDownloadedAreas: () -> Unit,
     onExportCsv: () -> Unit,
     onImportCsv: () -> Unit,
     onClearCache: () -> Unit,
@@ -147,7 +151,7 @@ fun SettingsScreen(
         Slider(
             value = markerScale,
             onValueChange = onMarkerScaleChange,
-            valueRange = 0.6f..2.0f
+            valueRange = 0.3f..1.75f
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -163,6 +167,44 @@ fun SettingsScreen(
             headlineContent = { Text(stringResource(R.string.settings_map_download_title)) },
             supportingContent = { Text(stringResource(R.string.settings_map_download_desc)) }
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = stringResource(R.string.settings_downloaded_areas_title))
+        Spacer(modifier = Modifier.height(8.dp))
+        if (downloadedAreas.isEmpty()) {
+            Text(text = stringResource(R.string.settings_downloaded_areas_empty))
+        } else {
+            downloadedAreas.forEach { area ->
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_downloaded_area_range, area.minZoom, area.maxZoom)) },
+                    supportingContent = {
+                        Text(
+                            stringResource(
+                                R.string.settings_downloaded_area_bounds,
+                                area.north,
+                                area.south,
+                                area.east,
+                                area.west
+                            )
+                        )
+                    },
+                    trailingContent = {
+                        IconButton(onClick = { onRemoveDownloadedArea(area) }) {
+                            Text(stringResource(R.string.action_delete))
+                        }
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onOpenMapDownload) {
+                Text(text = stringResource(R.string.action_add))
+            }
+            OutlinedButton(onClick = onDeduplicateDownloadedAreas) {
+                Text(text = stringResource(R.string.action_deduplicate))
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

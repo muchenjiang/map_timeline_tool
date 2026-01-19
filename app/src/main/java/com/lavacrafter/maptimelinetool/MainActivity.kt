@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
                 var showDefaultTags by remember { mutableStateOf(false) }
                 var showMapDownload by remember { mutableStateOf(false) }
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
+                var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
@@ -307,15 +308,17 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     floatingActionButton = {
-                        ExtendedFloatingActionButton(
-                            modifier = Modifier.height(64.dp),
-                            onClick = {
-                                pendingTimestamp = System.currentTimeMillis()
-                                newPointSelectedTagIds = defaultTagIds
-                                showDialog = true
+                        if (tab == 0) {
+                            ExtendedFloatingActionButton(
+                                modifier = Modifier.height(64.dp),
+                                onClick = {
+                                    pendingTimestamp = System.currentTimeMillis()
+                                    newPointSelectedTagIds = defaultTagIds
+                                    showDialog = true
+                                }
+                            ) {
+                                Text(stringResource(R.string.action_add_point))
                             }
-                        ) {
-                            Text(stringResource(R.string.action_add_point))
                         }
                     },
                     floatingActionButtonPosition = FabPosition.Center,
@@ -360,6 +363,7 @@ class MainActivity : ComponentActivity() {
                                 isActive = tab == 0,
                                 zoomBehavior = zoomBehavior,
                                 markerScale = markerScale,
+                                downloadedOnly = downloadedAreas.isNotEmpty(),
                                 scaffoldState = scaffoldState
                             )
                             1 -> {
@@ -414,7 +418,10 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else if (showMapDownload) {
                                 com.lavacrafter.maptimelinetool.ui.MapDownloadScreen(
-                                    onBack = { showMapDownload = false }
+                                    onBack = { showMapDownload = false },
+                                    onAreaDownloaded = { area ->
+                                        downloadedAreas = SettingsStore.addDownloadedArea(context, area)
+                                    }
                                 )
                             } else {
                                 SettingsScreen(
@@ -447,12 +454,23 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onOpenDefaultTags = { showDefaultTags = true },
                                     onOpenMapDownload = { showMapDownload = true },
+                                    downloadedAreas = downloadedAreas,
+                                    onRemoveDownloadedArea = { area ->
+                                        downloadedAreas = SettingsStore.removeDownloadedArea(context, area)
+                                    },
+                                    onDeduplicateDownloadedAreas = {
+                                        downloadedAreas = SettingsStore.dedupeDownloadedAreas(context)
+                                    },
                                     onExportCsv = exportCsv,
                                     onImportCsv = { importLauncher.launch("text/*") },
                                     onClearCache = {
-                                        val cacheDir = Configuration.getInstance().osmdroidTileCache
-                                        runCatching { cacheDir?.deleteRecursively() }
-                                        Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                        if (downloadedAreas.isNotEmpty()) {
+                                            Toast.makeText(context, context.getString(R.string.toast_cache_skip_downloaded), Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val cacheDir = Configuration.getInstance().osmdroidTileCache
+                                            runCatching { cacheDir?.deleteRecursively() }
+                                            Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                        }
                                     },
                                     onOpenAbout = { showAbout = true }
                                 )
@@ -637,6 +655,7 @@ private fun MapWithListSheet(
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
     markerScale: Float,
+    downloadedOnly: Boolean,
     scaffoldState: BottomSheetScaffoldState
 ) {
     BottomSheetScaffold(
@@ -661,7 +680,8 @@ private fun MapWithListSheet(
                 onEditPoint = onEditPointFromMap,
                 isActive = isActive,
                 zoomBehavior = zoomBehavior,
-                markerScale = markerScale
+                markerScale = markerScale,
+                downloadedOnly = downloadedOnly
             )
         }
     }
