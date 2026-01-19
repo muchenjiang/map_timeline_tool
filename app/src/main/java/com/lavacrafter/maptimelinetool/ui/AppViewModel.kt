@@ -88,6 +88,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun importPoints(pointsList: List<PointEntity>) {
+        viewModelScope.launch {
+            pointsList.forEach { repo.insert(it) }
+        }
+    }
+
     fun setTagForPoint(pointId: Long, tagId: Long, enabled: Boolean) {
         viewModelScope.launch {
             if (enabled) repo.insertPointTag(pointId, tagId) else repo.deletePointTag(pointId, tagId)
@@ -99,51 +105,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun observePointsForTag(tagId: Long) = repo.observePointsForTag(tagId)
 
     fun getLastKnownLocation(): Location? {
-        val lm = getApplication<Application>().getSystemService(LocationManager::class.java)
-        val providers = lm.getProviders(true)
-        return providers
-            .mapNotNull { lm.getLastKnownLocation(it) }
-            .maxByOrNull { it.time }
+        return com.lavacrafter.maptimelinetool.LocationUtils.getLastKnownLocation(getApplication())
     }
 
     suspend fun getFreshLocation(timeoutMs: Long): Location? {
-        return withTimeoutOrNull(timeoutMs) {
-            try {
-                getCurrentLocationOnce()
-            } catch (_: CancellationException) {
-                null
-            }
-        } ?: getLastKnownLocation()
-    }
-
-    private suspend fun getCurrentLocationOnce(): Location = suspendCancellableCoroutine { cont ->
-        val lm = getApplication<Application>().getSystemService(LocationManager::class.java)
-        val provider = lm.getProviders(true).firstOrNull()
-            ?: run {
-                cont.resumeWithException(IllegalStateException("No location provider"))
-                return@suspendCancellableCoroutine
-            }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val signal = CancellationSignal()
-            cont.invokeOnCancellation { signal.cancel() }
-            lm.getCurrentLocation(provider, signal, { runnable -> runnable.run() }) { location ->
-                if (location != null) {
-                    cont.resume(location)
-                } else {
-                    cont.resumeWithException(IllegalStateException("Location unavailable"))
-                }
-            }
-            return@suspendCancellableCoroutine
-        }
-
-        lateinit var listener: android.location.LocationListener
-        listener = android.location.LocationListener { location ->
-            lm.removeUpdates(listener)
-            cont.resume(location)
-        }
-        cont.invokeOnCancellation { lm.removeUpdates(listener) }
-        lm.requestSingleUpdate(provider, listener, null)
+        return com.lavacrafter.maptimelinetool.LocationUtils.getFreshLocation(getApplication(), timeoutMs)
     }
 
     fun scheduleAutoAdd(createdAt: Long, timeoutSeconds: Int) {
@@ -152,7 +118,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             kotlinx.coroutines.delay(timeoutSeconds * 1000L)
             val timestamp = createdAt
             val title = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
-            val location = getLastKnownLocation() ?: readCachedLocation()
+            val location = getFreshLocation(5000L)
             if (location != null) {
                 repo.insert(
                     PointEntity(

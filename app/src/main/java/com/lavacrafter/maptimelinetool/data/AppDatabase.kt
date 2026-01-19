@@ -18,9 +18,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "map_timeline.db"
-                )
-                    .fallbackToDestructiveMigration()
-                    .build()
+                ).build()
                     .also { instance = it }
             }
     }

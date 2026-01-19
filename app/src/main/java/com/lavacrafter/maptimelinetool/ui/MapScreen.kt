@@ -75,7 +75,7 @@ fun MapScreen(
         val map = mapView ?: return@LaunchedEffect
         val target = selectedPointId?.let { id -> points.find { it.id == id } } ?: return@LaunchedEffect
         map.controller.setZoom(16.0)
-        map.controller.setCenter(GeoPoint(target.latitude, target.longitude))
+        map.controller.animateTo(GeoPoint(target.latitude, target.longitude))
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -163,6 +163,14 @@ fun MapScreen(
                             sdf.format(Date(p.timestamp))
                         )
                         icon = createCounterIcon(context, order?.toString().orEmpty(), color)
+                        infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(org.osmdroid.library.R.layout.bonuspack_bubble, map) {
+                            override fun onOpen(item: Any?) {
+                                super.onOpen(item)
+                                mView.setOnClickListener {
+                                    onEditPoint(p)
+                                }
+                            }
+                        }
                         setOnMarkerClickListener { clicked, mapView ->
                             InfoWindow.closeAllInfoWindowsOn(mapView)
                             clicked.showInfoWindow()
@@ -170,6 +178,9 @@ fun MapScreen(
                         }
                     }
                     map.overlays.add(marker)
+                    if (p.id == selectedPointId) {
+                        marker.showInfoWindow()
+                    }
                 }
                 map.overlays.add(
                     MapEventsOverlay(object : MapEventsReceiver {

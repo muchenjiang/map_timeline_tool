@@ -11,6 +11,7 @@ object SettingsStore {
     private const val KEY_ZOOM_BEHAVIOR = "zoom_behavior"
     private const val KEY_LANGUAGE_PREFERENCE = "language_preference"
     private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
+    private const val KEY_DEFAULT_TAGS = "default_tags"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -96,6 +97,14 @@ object SettingsStore {
             .edit()
             .putBoolean(KEY_FOLLOW_SYSTEM_THEME, enabled)
             .apply()
+    }
+
+    fun getDefaultTagIds(context: Context): List<Long> {
+        return parseLongList(context, KEY_DEFAULT_TAGS)
+    }
+
+    fun setDefaultTagIds(context: Context, tagIds: List<Long>) {
+        saveLongList(context, KEY_DEFAULT_TAGS, tagIds)
     }
 
     private fun parseLongList(context: Context, key: String): List<Long> {

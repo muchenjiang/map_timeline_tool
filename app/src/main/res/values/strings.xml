@@ -2,6 +2,9 @@
     <string name="app_name">Map Timeline Tool</string>
     <string name="action_add_point">Add</string>
     <string name="action_export_csv">Export CSV</string>
+    <string name="action_import_csv">Import CSV</string>
+    <string name="toast_import_success">Imported %1$d points</string>
+    <string name="toast_import_failed">Import failed</string>
     <string name="action_clear_cache">Clear map cache</string>
     <string name="action_back">Back</string>
     <string name="action_center">Center</string>
@@ -50,6 +53,8 @@
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>
     <string name="settings_about">About</string>
+    <string name="settings_default_tags_title">Default Tags</string>
+    <string name="settings_default_tags_desc">Tags automatically added to new points</string>
     <string name="settings_language_label">Language</string>
     <string name="settings_language_follow_system">System default</string>
     <string name="settings_language_english">English</string>
@@ -62,9 +67,9 @@
     <string name="about_open_source_title">Open-source projects</string>
     <string name="about_ai_title">AI assistance</string>
     <string name="about_ai_text">This project was built with the help of AI tools.</string>
-    <string name="tag_lock">Lock</string>
-    <string name="tag_unlock">Unlock</string>
-    <string name="tag_pin_limit_message">You can lock up to three tags.</string>
+    <string name="tag_lock">Pin</string>
+    <string name="tag_unlock">Unpin</string>
+    <string name="tag_pin_limit_message">You can pin up to three tags.</string>
     <string name="tag_pin_limit_button">OK</string>
     <string name="settings_zoom_behavior_label">Zoom controls</string>
     <string name="settings_zoom_behavior_hide">Hide zoom buttons</string>
