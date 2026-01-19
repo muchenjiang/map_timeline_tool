@@ -31,3 +31,6 @@ Thumbs.db
 
 # Kotlin
 *.kotlin_module
+
+# Local secrets
+secrets/
