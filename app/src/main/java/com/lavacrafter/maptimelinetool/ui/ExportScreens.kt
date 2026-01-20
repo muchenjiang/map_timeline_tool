@@ -13,9 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +31,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.PointEntity
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 sealed class ExportKind {
     object All : ExportKind()
@@ -121,14 +130,89 @@ private fun TagPickerScreen(tags: List<com.lavacrafter.maptimelinetool.data.TagE
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeRangePickerScreen(onExport: (Long, Long) -> Unit, onBack: () -> Unit) {
-    var from by remember { mutableStateOf(0L) }
-    var to by remember { mutableStateOf(Long.MAX_VALUE) }
+    val zoneId = remember { ZoneId.systemDefault() }
+    val formatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault()) }
+    var startDate by remember { mutableStateOf(LocalDate.now(zoneId)) }
+    var endDate by remember { mutableStateOf(LocalDate.now(zoneId)) }
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+    val toLocalDate: (Long) -> LocalDate = { millis ->
+        Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+    }
+    val startOfDayMillis: (LocalDate) -> Long = { date ->
+        date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+    }
+    val endOfDayMillis: (LocalDate) -> Long = { date ->
+        date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+    }
     BackHandler { onBack() }
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.export_by_time)) }) }) { padding ->
         Column(modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Simple numeric entry is a placeholder; could be improved to date pickers
-            Text(text = stringResource(R.string.export_time_hint))
-            Button(onClick = { onExport(from, to) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_export_csv)) }
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = stringResource(R.string.export_start_date))
+                TextButton(onClick = { showStartPicker = true }) {
+                    Text(text = startDate.format(formatter))
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = stringResource(R.string.export_end_date))
+                TextButton(onClick = { showEndPicker = true }) {
+                    Text(text = endDate.format(formatter))
+                }
+            }
+            Button(
+                onClick = { onExport(startOfDayMillis(startDate), endOfDayMillis(endDate)) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !endDate.isBefore(startDate)
+            ) {
+                Text(stringResource(R.string.action_export_csv))
+            }
+        }
+    }
+
+    if (showStartPicker) {
+        val pickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showStartPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        startDate = toLocalDate(millis)
+                        if (endDate.isBefore(startDate)) endDate = startDate
+                    }
+                    showStartPicker = false
+                }) { Text(stringResource(R.string.action_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartPicker = false }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        ) {
+            DatePicker(state = pickerState, showModeToggle = false)
+        }
+    }
+
+    if (showEndPicker) {
+        val pickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = endDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showEndPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        endDate = toLocalDate(millis)
+                        if (endDate.isBefore(startDate)) startDate = endDate
+                    }
+                    showEndPicker = false
+                }) { Text(stringResource(R.string.action_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndPicker = false }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        ) {
+            DatePicker(state = pickerState, showModeToggle = false)
         }
     }
 }

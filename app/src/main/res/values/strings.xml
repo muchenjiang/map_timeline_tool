@@ -18,6 +18,7 @@
     <string name="dialog_note_label">Note (optional)</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
     <string name="action_done">Done</string>
@@ -151,5 +152,16 @@
     <string name="export_by_time">By time range</string>
     <string name="export_manual_select">Manual select</string>
     <string name="export_all">All</string>
+    <string name="export_start_date">Start date</string>
+    <string name="export_end_date">End date</string>
     <string name="export_time_hint">Enter time range (placeholder)</string>
+
+    <string name="open_source_androidx_license">AndroidX (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_compose_license">Jetpack Compose (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_material_license">Material Components (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_material_icons_license">Material Icons (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_room_license">Room (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_osmdroid_license">osmdroid (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_kotlin_license">Kotlin (Apache-2.0) — https://www.apache.org/licenses/LICENSE-2.0</string>
+    <string name="open_source_osm_license">OpenStreetMap data (ODbL 1.0) — https://opendatacommons.org/licenses/odbl/</string>
 </resources>
