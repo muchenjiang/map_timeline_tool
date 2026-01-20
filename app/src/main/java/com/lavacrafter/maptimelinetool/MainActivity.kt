@@ -373,19 +373,19 @@ class MainActivity : ComponentActivity() {
                         NavigationBar {
                             NavigationBarItem(
                                 selected = tab == 0,
-                                onClick = { tab = 0 },
+                                onClick = { tab = 0; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_map)) },
                                 icon = { }
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
-                                onClick = { tab = 1 },
+                                onClick = { tab = 1; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_tags)) },
                                 icon = { }
                             )
                             NavigationBarItem(
                                 selected = tab == 2,
-                                onClick = { tab = 2 },
+                                onClick = { tab = 2; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_settings)) },
                                 icon = { }
                             )
