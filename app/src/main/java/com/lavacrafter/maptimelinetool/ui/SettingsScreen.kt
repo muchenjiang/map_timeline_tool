@@ -246,7 +246,9 @@ private fun ThemeControls(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(checked = followSystemTheme, onCheckedChange = onFollowSystemThemeChange)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = stringResource(R.string.settings_theme_follow_system))
+            Text(
+                text = if (followSystemTheme) stringResource(R.string.settings_theme_follow_system_hint) else stringResource(R.string.settings_theme_follow_system)
+            )
         }
         if (!followSystemTheme) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -47,6 +47,7 @@
     <string name="settings_help_overview">Tap the cards below to reach the panels for themes, map controls, cache, downloads, and default tags. Each screen has a ? button for quick tips.</string>
     <string name="settings_theme_label">Dark theme</string>
     <string name="settings_theme_follow_system">Follow system</string>
+    <string name="settings_theme_follow_system_hint">Follow system — controls dark theme</string>
     <string name="settings_theme_dark_mode">Dark mode</string>
     <string name="settings_timeout_label">Add timeout (seconds)</string>
     <string name="settings_timeout_hint">Timeout seconds</string>

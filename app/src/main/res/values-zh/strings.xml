@@ -45,6 +45,7 @@
     <string name="settings_title">设置</string>
     <string name="settings_theme_label">深色主题</string>
     <string name="settings_theme_follow_system">跟随系统</string>
+    <string name="settings_theme_follow_system_hint">跟随系统 — 控制深色模式</string>
     <string name="settings_timeout_label">打点超时（秒）</string>
     <string name="settings_timeout_hint">超时秒数</string>
     <string name="settings_cache_policy_label">地图缓存策略</string>
