@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,9 @@ import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
@@ -57,7 +61,8 @@ fun MapScreen(
     onEditPoint: (PointEntity) -> Unit,
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
-    markerScale: Float
+    markerScale: Float,
+    downloadedOnly: Boolean
 ) {
     val context = LocalContext.current
     val sdf = remember {
@@ -71,6 +76,25 @@ fun MapScreen(
     val orientationProvider = remember { InternalCompassOrientationProvider(context) }
     val headingOverlay = remember { HeadingLocationOverlay(context) }
     val todayOrderById = remember(points) { buildTodayOrder(points) }
+    var interactionToken by remember { mutableStateOf(0) }
+    var showZoomTransient by remember { mutableStateOf(false) }
+    val onMapInteraction = rememberUpdatedState {
+        interactionToken += 1
+        showZoomTransient = true
+    }
+
+    LaunchedEffect(isActive, interactionToken) {
+        if (!isActive) {
+            showZoomTransient = false
+            return@LaunchedEffect
+        }
+        if (interactionToken == 0) return@LaunchedEffect
+        val token = interactionToken
+        delay(3000L)
+        if (interactionToken == token) {
+            showZoomTransient = false
+        }
+    }
 
     LaunchedEffect(selectedPointId, mapView, points) {
         val map = mapView ?: return@LaunchedEffect
@@ -137,15 +161,28 @@ fun MapScreen(
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
+                    setUseDataConnection(!downloadedOnly)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
                         controller.setCenter(GeoPoint(last.latitude, last.longitude))
                     }
+                    addMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
+                            onMapInteraction.value.invoke()
+                            return false
+                        }
+
+                        override fun onZoom(event: ZoomEvent?): Boolean {
+                            onMapInteraction.value.invoke()
+                            return false
+                        }
+                    })
                     mapView = this
                 }
             },
             update = { map ->
+                map.setUseDataConnection(!downloadedOnly)
                 val signature = points.map { it.id }
                 if (overlaysReady && signature == lastOverlaySignature) {
                     map.invalidate()
@@ -231,7 +268,7 @@ fun MapScreen(
 
         val shouldShowZoom = when (zoomBehavior) {
             ZoomButtonBehavior.HIDE -> false
-            ZoomButtonBehavior.WHEN_ACTIVE -> isActive
+            ZoomButtonBehavior.WHEN_ACTIVE -> isActive && showZoomTransient
             ZoomButtonBehavior.ALWAYS -> true
         }
         if (shouldShowZoom) {
@@ -266,9 +303,10 @@ private fun createCounterIcon(
     scale: Float
 ): android.graphics.drawable.BitmapDrawable {
     val density = context.resources.displayMetrics.density
-    val size = (24 * density * scale)
+    val normalized = scale.coerceIn(0.3f, 1.75f)
+    val size = (24 * density * normalized)
         .toInt()
-        .coerceIn((12 * density).toInt(), (64 * density).toInt())
+        .coerceIn((10 * density).toInt(), (70 * density).toInt())
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -277,7 +315,7 @@ private fun createCounterIcon(
     }
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = Color.WHITE
-        textSize = 32f * scale.coerceIn(0.6f, 2.0f)
+        textSize = 32f * normalized
         textAlign = Paint.Align.CENTER
         typeface = android.graphics.Typeface.DEFAULT_BOLD
     }

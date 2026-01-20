@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.lavacrafter.maptimelinetool.export.CsvExporter
+import com.lavacrafter.maptimelinetool.ui.ExportSelection
+import com.lavacrafter.maptimelinetool.ui.ExportKind
+import com.lavacrafter.maptimelinetool.ui.ExportScreens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import com.lavacrafter.maptimelinetool.ui.AboutScreen
 import com.lavacrafter.maptimelinetool.ui.AddPointDialog
 import com.lavacrafter.maptimelinetool.ui.AppViewModel
@@ -60,7 +67,10 @@ import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
 import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
+import com.lavacrafter.maptimelinetool.ui.SettingsRoute
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.downloadTileSourceById
+import com.lavacrafter.maptimelinetool.ui.mapTileSources
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
 import com.lavacrafter.maptimelinetool.ui.applyMapCachePolicy
 import com.lavacrafter.maptimelinetool.ui.applyLanguagePreference
@@ -95,9 +105,15 @@ class MainActivity : ComponentActivity() {
                 var markerScale by remember { mutableStateOf(SettingsStore.getMarkerScale(context)) }
                 var showTagPickerForAdd by remember { mutableStateOf(false) }
                 var showTagPickerForEdit by remember { mutableStateOf(false) }
-                var showDefaultTags by remember { mutableStateOf(false) }
                 var showMapDownload by remember { mutableStateOf(false) }
+                var showExportFlow by remember { mutableStateOf(false) }
+                var settingsRoute by remember { mutableStateOf<SettingsRoute>(SettingsRoute.Main) }
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
+                var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
+                var downloadTileSourceId by remember { mutableStateOf(SettingsStore.getDownloadTileSourceId(context)) }
+                var downloadMultiThreadEnabled by remember { mutableStateOf(SettingsStore.getDownloadMultiThreadEnabled(context)) }
+                var downloadThreadCount by remember { mutableStateOf(SettingsStore.getDownloadThreadCount(context)) }
+                var mapTileSourceId by remember { mutableStateOf(mapTileSources.first().id) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
                 var showExitDialog by remember { mutableStateOf(false) }
@@ -111,6 +127,14 @@ class MainActivity : ComponentActivity() {
 
                 val recordRecentTag: (Long) -> Unit = { tagId ->
                     recentTagIds = SettingsStore.addRecentTagId(context, tagId)
+                }
+                val toggleDefaultTag: (Long) -> Unit = { tagId ->
+                    defaultTagIds = if (defaultTagIds.contains(tagId)) {
+                        defaultTagIds - tagId
+                    } else {
+                        defaultTagIds + tagId
+                    }
+                    SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
                 }
                 val toggleNewPointTag: (Long) -> Unit = { tagId ->
                     newPointSelectedTagIds = if (newPointSelectedTagIds.contains(tagId)) {
@@ -127,6 +151,8 @@ class MainActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
+                var pendingExportSelection by remember { mutableStateOf<ExportSelection?>(null) }
+                val networkStatus by observeNetworkStatus(context)
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
                 ) { uri ->
@@ -158,6 +184,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
                 ) { result ->
@@ -221,8 +248,8 @@ class MainActivity : ComponentActivity() {
                     showTagPickerForAdd = false
                 }
                 BackHandler(showAbout) { showAbout = false }
-                BackHandler(showDefaultTags) { showDefaultTags = false }
                 BackHandler(showMapDownload) { showMapDownload = false }
+                BackHandler(tab == 2 && settingsRoute != SettingsRoute.Main) { settingsRoute = SettingsRoute.Main }
                 BackHandler(selectedTag != null) { selectedTag = null }
                 BackHandler(!showDialog && !showTagPickerForAdd && !showTagPickerForEdit && editingPoint == null && editingTag == null && !showAbout && selectedTag == null && sheetState.currentValue != SheetValue.Expanded) {
                     showExitDialog = true
@@ -279,24 +306,45 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val pointsState = viewModel.points.collectAsState().value
+                LaunchedEffect(pendingExportSelection, pointsState) {
+                    val sel = pendingExportSelection ?: return@LaunchedEffect
+                    val pointsToExport = when (sel.kind) {
+                        is ExportKind.All -> pointsState
+                        is ExportKind.ByTag -> {
+                            val tagId = (sel.kind as ExportKind.ByTag).tagId
+                            viewModel.observePointsForTag(tagId).first()
+                        }
+                        is ExportKind.ByTime -> {
+                            val k = sel.kind as ExportKind.ByTime
+                            pointsState.filter { it.timestamp in k.fromMs..k.toMs }
+                        }
+                        is ExportKind.Manual -> {
+                            val ids = (sel.kind as ExportKind.Manual).ids
+                            pointsState.filter { ids.contains(it.id) }
+                        }
+                    }
+                    val csv = withContext(Dispatchers.Default) {
+                        CsvExporter.buildCsv(pointsToExport)
+                    }
+                    val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                    val fileName = "map_timeline_${sdf.format(java.util.Date())}.csv"
+                    pendingCsv = csv
+                    exportLauncher.launch(fileName)
+                    pendingExportSelection = null
+                    showExportFlow = false
+                    tab = 2
+                    settingsRoute = SettingsRoute.Main
+                }
                 val tagsState = viewModel.tags.collectAsState().value
                 val quickTags = remember(tagsState, pinnedTagIds, recentTagIds) {
                     val pinned = tagsState.filter { pinnedTagIds.contains(it.id) }
                     val recent = recentTagIds.mapNotNull { id -> tagsState.firstOrNull { it.id == id } }
                     (pinned + recent).distinctBy { it.id }.take(3)
                 }
+                val downloadTileSource = remember(downloadTileSourceId) { downloadTileSourceById(downloadTileSourceId) }
                 val exportCsv: () -> Unit = {
-                    scope.launch {
-                        val points = viewModel.getAllPoints()
-                        if (points.isEmpty()) {
-                            Toast.makeText(context, context.getString(R.string.toast_no_points), Toast.LENGTH_SHORT).show()
-                            return@launch
-                        }
-                        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                        val fileName = "map_timeline_${sdf.format(Date())}.csv"
-                        pendingCsv = CsvExporter.buildCsv(points)
-                        exportLauncher.launch(fileName)
-                    }
+                    // Open export flow UI
+                    showExportFlow = true
                 }
 
                 Scaffold(
@@ -307,15 +355,17 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     floatingActionButton = {
-                        ExtendedFloatingActionButton(
-                            modifier = Modifier.height(64.dp),
-                            onClick = {
-                                pendingTimestamp = System.currentTimeMillis()
-                                newPointSelectedTagIds = defaultTagIds
-                                showDialog = true
+                        if (tab == 0) {
+                            ExtendedFloatingActionButton(
+                                modifier = Modifier.height(64.dp),
+                                onClick = {
+                                    pendingTimestamp = System.currentTimeMillis()
+                                    newPointSelectedTagIds = defaultTagIds
+                                    showDialog = true
+                                }
+                            ) {
+                                Text(stringResource(R.string.action_add_point))
                             }
-                        ) {
-                            Text(stringResource(R.string.action_add_point))
                         }
                     },
                     floatingActionButtonPosition = FabPosition.Center,
@@ -323,19 +373,19 @@ class MainActivity : ComponentActivity() {
                         NavigationBar {
                             NavigationBarItem(
                                 selected = tab == 0,
-                                onClick = { tab = 0 },
+                                onClick = { tab = 0; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_map)) },
                                 icon = { }
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
-                                onClick = { tab = 1 },
+                                onClick = { tab = 1; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_tags)) },
                                 icon = { }
                             )
                             NavigationBarItem(
                                 selected = tab == 2,
-                                onClick = { tab = 2 },
+                                onClick = { tab = 2; showExportFlow = false },
                                 label = { Text(stringResource(R.string.tab_settings)) },
                                 icon = { }
                             )
@@ -360,6 +410,7 @@ class MainActivity : ComponentActivity() {
                                 isActive = tab == 0,
                                 zoomBehavior = zoomBehavior,
                                 markerScale = markerScale,
+                                downloadedOnly = downloadedAreas.isNotEmpty(),
                                 scaffoldState = scaffoldState
                             )
                             1 -> {
@@ -398,23 +449,15 @@ class MainActivity : ComponentActivity() {
                             }
                             2 -> if (showAbout) {
                                 AboutScreen(onBack = { showAbout = false })
-                            } else if (showDefaultTags) {
-                                com.lavacrafter.maptimelinetool.ui.DefaultTagsScreen(
-                                    tags = tagsState,
-                                    selectedTagIds = defaultTagIds,
-                                    onToggleTag = { tagId ->
-                                        defaultTagIds = if (defaultTagIds.contains(tagId)) {
-                                            defaultTagIds - tagId
-                                        } else {
-                                            defaultTagIds + tagId
-                                        }
-                                        SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
-                                    },
-                                    onBack = { showDefaultTags = false }
-                                )
                             } else if (showMapDownload) {
                                 com.lavacrafter.maptimelinetool.ui.MapDownloadScreen(
-                                    onBack = { showMapDownload = false }
+                                    onBack = { showMapDownload = false },
+                                    onAreaDownloaded = { area ->
+                                        downloadedAreas = SettingsStore.addDownloadedArea(context, area)
+                                    },
+                                    tileSource = downloadTileSource,
+                                    useMultiThreadDownload = downloadMultiThreadEnabled,
+                                    downloadThreadCount = downloadThreadCount
                                 )
                             } else {
                                 SettingsScreen(
@@ -435,6 +478,24 @@ class MainActivity : ComponentActivity() {
                                         cachePolicy = it
                                         SettingsStore.setCachePolicy(context, it)
                                     },
+                                    networkStatus = networkStatus,
+                                    selectedDownloadTileSourceId = downloadTileSourceId,
+                                    onDownloadTileSourceChange = {
+                                        downloadTileSourceId = it
+                                        SettingsStore.setDownloadTileSourceId(context, it)
+                                    },
+                                    downloadMultiThreadEnabled = downloadMultiThreadEnabled,
+                                    onDownloadMultiThreadEnabledChange = {
+                                        downloadMultiThreadEnabled = it
+                                        SettingsStore.setDownloadMultiThreadEnabled(context, it)
+                                    },
+                                    downloadThreadCount = downloadThreadCount,
+                                    onDownloadThreadCountChange = {
+                                        downloadThreadCount = it
+                                        SettingsStore.setDownloadThreadCount(context, it)
+                                    },
+                                    mapTileSourceId = mapTileSourceId,
+                                    onMapTileSourceChange = { mapTileSourceId = it },
                                     zoomBehavior = zoomBehavior,
                                     onZoomBehaviorChange = {
                                         zoomBehavior = it
@@ -445,18 +506,42 @@ class MainActivity : ComponentActivity() {
                                         markerScale = it
                                         SettingsStore.setMarkerScale(context, it)
                                     },
-                                    onOpenDefaultTags = { showDefaultTags = true },
                                     onOpenMapDownload = { showMapDownload = true },
+                                    downloadedAreas = downloadedAreas,
+                                    onRemoveDownloadedArea = { area ->
+                                        downloadedAreas = SettingsStore.removeDownloadedArea(context, area)
+                                    },
+                                    onDeduplicateDownloadedAreas = {
+                                        downloadedAreas = SettingsStore.dedupeDownloadedAreas(context)
+                                    },
                                     onExportCsv = exportCsv,
                                     onImportCsv = { importLauncher.launch("text/*") },
                                     onClearCache = {
-                                        val cacheDir = Configuration.getInstance().osmdroidTileCache
-                                        runCatching { cacheDir?.deleteRecursively() }
-                                        Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                        if (downloadedAreas.isNotEmpty()) {
+                                            Toast.makeText(context, context.getString(R.string.toast_cache_skip_downloaded), Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val cacheDir = Configuration.getInstance().osmdroidTileCache
+                                            runCatching { cacheDir?.deleteRecursively() }
+                                            Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                        }
                                     },
-                                    onOpenAbout = { showAbout = true }
+                                    onOpenAbout = { showAbout = true },
+                                    defaultTags = tagsState,
+                                    selectedDefaultTagIds = defaultTagIds,
+                                    onToggleDefaultTag = toggleDefaultTag,
+                                    route = settingsRoute,
+                                    onNavigateTo = { settingsRoute = it },
+                                    onNavigateBack = { settingsRoute = SettingsRoute.Main }
                                 )
                             }
+                        }
+                        if (showExportFlow) {
+                            ExportScreens(
+                                points = pointsState,
+                                tags = tagsState,
+                                onSelectExport = { sel -> pendingExportSelection = sel },
+                                onBack = { showExportFlow = false }
+                            )
                         }
                     }
                 }
@@ -637,6 +722,7 @@ private fun MapWithListSheet(
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
     markerScale: Float,
+    downloadedOnly: Boolean,
     scaffoldState: BottomSheetScaffoldState
 ) {
     BottomSheetScaffold(
@@ -661,7 +747,8 @@ private fun MapWithListSheet(
                 onEditPoint = onEditPointFromMap,
                 isActive = isActive,
                 zoomBehavior = zoomBehavior,
-                markerScale = markerScale
+                markerScale = markerScale,
+                downloadedOnly = downloadedOnly
             )
         }
     }
@@ -674,5 +761,48 @@ private fun vibrateOnce(context: Context) {
     } else {
         @Suppress("DEPRECATION")
         vibrator.vibrate(50)
+    }
+}
+
+enum class NetworkStatus { WIFI, CELLULAR, NONE }
+
+@Composable
+fun observeNetworkStatus(context: Context): androidx.compose.runtime.State<NetworkStatus> {
+    val state = remember { mutableStateOf(getNetworkStatus(context)) }
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                state.value = getNetworkStatus(context)
+            }
+
+            override fun onLost(network: android.net.Network) {
+                state.value = getNetworkStatus(context)
+            }
+
+            override fun onCapabilitiesChanged(network: android.net.Network, networkCapabilities: android.net.NetworkCapabilities) {
+                state.value = when {
+                    networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
+                    networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
+                    else -> NetworkStatus.NONE
+                }
+            }
+        }
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        onDispose {
+            runCatching { connectivityManager.unregisterNetworkCallback(callback) }
+        }
+    }
+    return state
+}
+
+private fun getNetworkStatus(context: Context): NetworkStatus {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return NetworkStatus.NONE
+    val caps = connectivityManager.getNetworkCapabilities(network) ?: return NetworkStatus.NONE
+    return when {
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
+        else -> NetworkStatus.NONE
     }
 }

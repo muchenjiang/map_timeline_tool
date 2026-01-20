@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.lavacrafter.maptimelinetool.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,29 +13,42 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.NetworkStatus
+import com.lavacrafter.maptimelinetool.data.TagEntity
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -44,169 +60,510 @@ fun SettingsScreen(
     onTimeoutSecondsChange: (Int) -> Unit,
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
+    networkStatus: NetworkStatus,
+    selectedDownloadTileSourceId: String,
+    onDownloadTileSourceChange: (String) -> Unit,
+    downloadMultiThreadEnabled: Boolean,
+    onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
+    downloadThreadCount: Int,
+    onDownloadThreadCountChange: (Int) -> Unit,
+    mapTileSourceId: String,
+    onMapTileSourceChange: (String) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
     markerScale: Float,
     onMarkerScaleChange: (Float) -> Unit,
-    onOpenDefaultTags: () -> Unit,
+    downloadedAreas: List<DownloadedArea>,
+    onRemoveDownloadedArea: (DownloadedArea) -> Unit,
+    onDeduplicateDownloadedAreas: () -> Unit,
     onOpenMapDownload: () -> Unit,
+    onExportCsv: () -> Unit,
+    onImportCsv: () -> Unit,
+    onClearCache: () -> Unit,
+    onOpenAbout: () -> Unit,
+    defaultTags: List<TagEntity>,
+    selectedDefaultTagIds: Set<Long>,
+    onToggleDefaultTag: (Long) -> Unit,
+    route: SettingsRoute,
+    onNavigateTo: (SettingsRoute) -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    BackHandler(enabled = route != SettingsRoute.Main) {
+        onNavigateBack()
+    }
+    when (route) {
+        SettingsRoute.Main -> SettingsOverviewScreen(
+            isDarkTheme = isDarkTheme,
+            onDarkThemeChange = onDarkThemeChange,
+            followSystemTheme = followSystemTheme,
+            onFollowSystemThemeChange = onFollowSystemThemeChange,
+            onNavigateTo = onNavigateTo,
+            onExportCsv = onExportCsv,
+            onImportCsv = onImportCsv,
+            onClearCache = onClearCache,
+            onOpenAbout = onOpenAbout
+        )
+        SettingsRoute.MapOperations -> MapOperationsSettings(
+            timeoutSeconds = timeoutSeconds,
+            onTimeoutSecondsChange = onTimeoutSecondsChange,
+            zoomBehavior = zoomBehavior,
+            onZoomBehaviorChange = onZoomBehaviorChange,
+            markerScale = markerScale,
+            onMarkerScaleChange = onMarkerScaleChange,
+            onBack = onNavigateBack
+        )
+        SettingsRoute.Cache -> CacheSettings(
+            cachePolicy = cachePolicy,
+            onCachePolicyChange = onCachePolicyChange,
+            networkStatus = networkStatus,
+            mapTileSourceId = mapTileSourceId,
+            onMapTileSourceChange = onMapTileSourceChange,
+            onClearCache = onClearCache,
+            onBack = onNavigateBack
+        )
+        SettingsRoute.Download -> DownloadSettings(
+            selectedDownloadTileSourceId = selectedDownloadTileSourceId,
+            onDownloadTileSourceChange = onDownloadTileSourceChange,
+            downloadMultiThreadEnabled = downloadMultiThreadEnabled,
+            onDownloadMultiThreadEnabledChange = onDownloadMultiThreadEnabledChange,
+            downloadThreadCount = downloadThreadCount,
+            onDownloadThreadCountChange = onDownloadThreadCountChange,
+            downloadedAreas = downloadedAreas,
+            onRemoveDownloadedArea = onRemoveDownloadedArea,
+            onDeduplicateDownloadedAreas = onDeduplicateDownloadedAreas,
+            onOpenMapDownload = onOpenMapDownload,
+            onBack = onNavigateBack
+        )
+        SettingsRoute.DefaultTags -> DefaultTagsScreen(
+            tags = defaultTags,
+            selectedTagIds = selectedDefaultTagIds,
+            onToggleTag = onToggleDefaultTag,
+            onBack = onNavigateBack
+        )
+    }
+}
+
+@Composable
+private fun SettingsOverviewScreen(
+    isDarkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
+    followSystemTheme: Boolean,
+    onFollowSystemThemeChange: (Boolean) -> Unit,
+    onNavigateTo: (SettingsRoute) -> Unit,
     onExportCsv: () -> Unit,
     onImportCsv: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
-    var timeoutText by remember(timeoutSeconds) { mutableStateOf(timeoutSeconds.toString()) }
+    var showHelp by remember { mutableStateOf(false) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Icon(Icons.Default.Help, contentDescription = stringResource(R.string.settings_help_title))
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ThemeControls(
+                isDarkTheme = isDarkTheme,
+                onDarkThemeChange = onDarkThemeChange,
+                followSystemTheme = followSystemTheme,
+                onFollowSystemThemeChange = onFollowSystemThemeChange
+            )
+
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_map_operations_title),
+                description = stringResource(R.string.settings_map_operations_desc),
+                onClick = { onNavigateTo(SettingsRoute.MapOperations) }
+            )
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_cache_title),
+                description = stringResource(R.string.settings_cache_desc),
+                onClick = { onNavigateTo(SettingsRoute.Cache) }
+            )
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_download_title) + " " + stringResource(R.string.settings_experimental_label),
+                description = stringResource(R.string.settings_download_desc),
+                onClick = { onNavigateTo(SettingsRoute.Download) }
+            )
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_default_tags_title),
+                description = stringResource(R.string.settings_default_tags_desc),
+                onClick = { onNavigateTo(SettingsRoute.DefaultTags) }
+            )
+
+            Button(onClick = onExportCsv, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_export_csv))
+            }
+            Button(onClick = onImportCsv, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_import_csv))
+            }
+            OutlinedButton(onClick = onClearCache, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_clear_cache))
+            }
+            OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.settings_about))
+            }
+        }
+    }
+
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            title = { Text(stringResource(R.string.settings_help_title)) },
+            text = { Text(stringResource(R.string.settings_help_overview)) },
+            confirmButton = {
+                TextButton(onClick = { showHelp = false }) {
+                    Text(stringResource(R.string.action_done))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ThemeControls(
+    isDarkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
+    followSystemTheme: Boolean,
+    onFollowSystemThemeChange: (Boolean) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = followSystemTheme, onCheckedChange = onFollowSystemThemeChange)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = if (followSystemTheme) stringResource(R.string.settings_theme_follow_system_hint) else stringResource(R.string.settings_theme_follow_system)
+            )
+        }
+        if (!followSystemTheme) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = isDarkTheme, onCheckedChange = onDarkThemeChange)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(R.string.settings_theme_dark_mode))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsOverviewItem(title: String, description: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp)
     ) {
-        Text(text = stringResource(R.string.settings_title))
-        Spacer(modifier = Modifier.height(12.dp))
-        Divider()
-        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = description, style = MaterialTheme.typography.bodyMedium)
+        Divider(modifier = Modifier.padding(top = 12.dp))
+    }
+}
 
-        Column {
-            Text(text = stringResource(R.string.settings_theme_label))
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = followSystemTheme,
-                    onCheckedChange = onFollowSystemThemeChange
+@Composable
+private fun MapOperationsSettings(
+    timeoutSeconds: Int,
+    onTimeoutSecondsChange: (Int) -> Unit,
+    zoomBehavior: ZoomButtonBehavior,
+    onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
+    markerScale: Float,
+    onMarkerScaleChange: (Float) -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsSubpageScaffold(
+        title = stringResource(R.string.settings_map_operations_title),
+        tutorialText = stringResource(R.string.settings_help_map_operations),
+        onBack = onBack
+    ) { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(R.string.settings_timeout_label))
+                var textValue by remember(timeoutSeconds) { mutableStateOf(timeoutSeconds.toString()) }
+                OutlinedTextField(
+                    value = textValue,
+                    onValueChange = { value ->
+                        textValue = value.filter { it.isDigit() }
+                        textValue.toIntOrNull()?.let(onTimeoutSecondsChange)
+                    },
+                    label = { Text(stringResource(R.string.settings_timeout_hint)) },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.settings_theme_follow_system))
             }
-            if (!followSystemTheme) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Switch(
-                    checked = isDarkTheme,
-                    onCheckedChange = onDarkThemeChange
+
+            SelectionGroup(
+                title = stringResource(R.string.settings_zoom_behavior_label),
+                options = listOf(
+                    SelectionItem(
+                        label = stringResource(R.string.settings_zoom_behavior_hide),
+                        value = ZoomButtonBehavior.HIDE
+                    ),
+                    SelectionItem(
+                        label = stringResource(R.string.settings_zoom_behavior_interaction),
+                        value = ZoomButtonBehavior.WHEN_ACTIVE
+                    ),
+                    SelectionItem(
+                        label = stringResource(R.string.settings_zoom_behavior_always),
+                        value = ZoomButtonBehavior.ALWAYS
+                    )
+                ),
+                selectedValue = zoomBehavior,
+                onSelect = onZoomBehaviorChange
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(R.string.settings_marker_size_label))
+                Text(text = stringResource(R.string.settings_marker_size_value, (markerScale * 100).toInt()))
+                Slider(
+                    value = markerScale,
+                    onValueChange = onMarkerScaleChange,
+                    valueRange = 0.3f..1.75f
                 )
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_timeout_label))
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = timeoutText,
-            onValueChange = { value ->
-                timeoutText = value.filter { it.isDigit() }
-                timeoutText.toIntOrNull()?.let { seconds ->
-                    onTimeoutSecondsChange(seconds)
+@Composable
+private fun CacheSettings(
+    cachePolicy: MapCachePolicy,
+    onCachePolicyChange: (MapCachePolicy) -> Unit,
+    networkStatus: NetworkStatus,
+    mapTileSourceId: String,
+    onMapTileSourceChange: (String) -> Unit,
+    onClearCache: () -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsSubpageScaffold(
+        title = stringResource(R.string.settings_cache_title),
+        tutorialText = stringResource(R.string.settings_help_cache),
+        onBack = onBack
+    ) { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SelectionGroup(
+                title = stringResource(R.string.settings_cache_source_label),
+                options = mapTileSources.map { source ->
+                    SelectionItem(label = stringResource(source.labelRes), value = source.id)
+                },
+                selectedValue = mapTileSourceId,
+                onSelect = onMapTileSourceChange
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(
+                    R.string.settings_network_status_label,
+                    stringResource(
+                        when (networkStatus) {
+                            NetworkStatus.WIFI -> R.string.settings_network_status_wifi
+                            NetworkStatus.CELLULAR -> R.string.settings_network_status_cellular
+                            NetworkStatus.NONE -> R.string.settings_network_status_offline
+                        }
+                    )
+                ))
+                SelectionGroup(
+                    title = stringResource(R.string.settings_cache_policy_label),
+                    options = listOf(
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_disabled), value = MapCachePolicy.DISABLED),
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_wifi), value = MapCachePolicy.WIFI_ONLY),
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_always), value = MapCachePolicy.ALWAYS)
+                    ),
+                    selectedValue = cachePolicy,
+                    onSelect = onCachePolicyChange
+                )
+            }
+
+            OutlinedButton(onClick = onClearCache, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_clear_cache))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadSettings(
+    selectedDownloadTileSourceId: String,
+    onDownloadTileSourceChange: (String) -> Unit,
+    downloadMultiThreadEnabled: Boolean,
+    onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
+    downloadThreadCount: Int,
+    onDownloadThreadCountChange: (Int) -> Unit,
+    downloadedAreas: List<DownloadedArea>,
+    onRemoveDownloadedArea: (DownloadedArea) -> Unit,
+    onDeduplicateDownloadedAreas: () -> Unit,
+    onOpenMapDownload: () -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsSubpageScaffold(
+        title = stringResource(R.string.settings_download_title) + " " + stringResource(R.string.settings_experimental_label),
+        tutorialText = stringResource(R.string.settings_help_download),
+        onBack = onBack
+    ) { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SelectionGroup(
+                title = stringResource(R.string.settings_download_source_label),
+                options = downloadTileSources.map { source ->
+                    SelectionItem(label = stringResource(source.labelRes), value = source.id)
+                },
+                selectedValue = selectedDownloadTileSourceId,
+                onSelect = onDownloadTileSourceChange
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Checkbox(
+                        checked = downloadMultiThreadEnabled,
+                        onCheckedChange = onDownloadMultiThreadEnabledChange
+                    )
+                    Text(text = stringResource(R.string.settings_download_multi_thread_label))
                 }
-            },
-            label = { Text(stringResource(R.string.settings_timeout_hint)) },
-            modifier = Modifier.fillMaxWidth()
-        )
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_cache_policy_label))
-        Spacer(modifier = Modifier.height(8.dp))
-        CachePolicyOption(
-            label = stringResource(R.string.settings_cache_policy_disabled),
-            selected = cachePolicy == MapCachePolicy.DISABLED,
-            onSelect = { onCachePolicyChange(MapCachePolicy.DISABLED) }
-        )
-        CachePolicyOption(
-            label = stringResource(R.string.settings_cache_policy_wifi),
-            selected = cachePolicy == MapCachePolicy.WIFI_ONLY,
-            onSelect = { onCachePolicyChange(MapCachePolicy.WIFI_ONLY) }
-        )
-        CachePolicyOption(
-            label = stringResource(R.string.settings_cache_policy_always),
-            selected = cachePolicy == MapCachePolicy.ALWAYS,
-            onSelect = { onCachePolicyChange(MapCachePolicy.ALWAYS) }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_zoom_behavior_label))
-        Spacer(modifier = Modifier.height(8.dp))
-        ZoomBehaviorOption(
-            label = stringResource(R.string.settings_zoom_behavior_hide),
-            selected = zoomBehavior == ZoomButtonBehavior.HIDE,
-            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.HIDE) }
-        )
-        ZoomBehaviorOption(
-            label = stringResource(R.string.settings_zoom_behavior_interaction),
-            selected = zoomBehavior == ZoomButtonBehavior.WHEN_ACTIVE,
-            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.WHEN_ACTIVE) }
-        )
-        ZoomBehaviorOption(
-            label = stringResource(R.string.settings_zoom_behavior_always),
-            selected = zoomBehavior == ZoomButtonBehavior.ALWAYS,
-            onSelect = { onZoomBehaviorChange(ZoomButtonBehavior.ALWAYS) }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = stringResource(R.string.settings_marker_size_label))
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = stringResource(R.string.settings_marker_size_value, (markerScale * 100).toInt()))
-        Slider(
-            value = markerScale,
-            onValueChange = onMarkerScaleChange,
-            valueRange = 0.6f..2.0f
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        ListItem(
-            modifier = Modifier.clickable { onOpenDefaultTags() },
-            headlineContent = { Text(stringResource(R.string.settings_default_tags_title)) },
-            supportingContent = { Text(stringResource(R.string.settings_default_tags_desc)) }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-        ListItem(
-            modifier = Modifier.clickable { onOpenMapDownload() },
-            headlineContent = { Text(stringResource(R.string.settings_map_download_title)) },
-            supportingContent = { Text(stringResource(R.string.settings_map_download_desc)) }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onExportCsv) {
-                Text(text = stringResource(R.string.action_export_csv))
+                Text(
+                    text = stringResource(
+                        R.string.settings_download_thread_count_label,
+                        downloadThreadCount
+                    )
+                )
+                Slider(
+                    value = downloadThreadCount.toFloat(),
+                    onValueChange = { value ->
+                        onDownloadThreadCountChange(value.roundToInt().coerceIn(2, 32))
+                    },
+                    valueRange = 2f..32f,
+                    steps = 29,
+                    enabled = downloadMultiThreadEnabled
+                )
             }
-            Button(onClick = onImportCsv) {
-                Text(text = stringResource(R.string.action_import_csv))
+
+            Button(onClick = onOpenMapDownload, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.settings_map_download_title))
+            }
+
+            if (downloadedAreas.isEmpty()) {
+                Text(text = stringResource(R.string.settings_downloaded_areas_empty))
+            } else {
+                downloadedAreas.forEach { area ->
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_downloaded_area_range, area.minZoom, area.maxZoom))
+                        },
+                        supportingContent = {
+                            Text(
+                                stringResource(
+                                    R.string.settings_downloaded_area_bounds,
+                                    area.north,
+                                    area.south,
+                                    area.east,
+                                    area.west
+                                )
+                            )
+                        },
+                        trailingContent = {
+                            TextButton(onClick = { onRemoveDownloadedArea(area) }) {
+                                Text(stringResource(R.string.action_delete))
+                            }
+                        }
+                    )
+                    Divider()
+                }
+                OutlinedButton(onClick = onDeduplicateDownloadedAreas, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.action_deduplicate))
+                }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(onClick = onClearCache) {
-            Text(text = stringResource(R.string.action_clear_cache))
+@Composable
+private fun SettingsSubpageScaffold(
+    title: String,
+    tutorialText: String,
+    onBack: () -> Unit,
+    content: @Composable (Modifier) -> Unit
+) {
+    var showHelp by remember { mutableStateOf(false) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Icon(Icons.Default.Help, contentDescription = stringResource(R.string.settings_help_title))
+                    }
+                }
+            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(
-            modifier = Modifier.align(Alignment.End),
-            onClick = onOpenAbout
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
         ) {
-            Text(text = stringResource(R.string.settings_about))
+            content(Modifier)
         }
+    }
 
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            title = { Text(stringResource(R.string.settings_help_title)) },
+            text = { Text(tutorialText) },
+            confirmButton = {
+                TextButton(onClick = { showHelp = false }) {
+                    Text(stringResource(R.string.action_done))
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun CachePolicyOption(label: String, selected: Boolean, onSelect: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RadioButton(selected = selected, onClick = onSelect)
-            Text(text = label, modifier = Modifier.padding(top = 12.dp))
+private fun <T> SelectionGroup(
+    title: String,
+    options: List<SelectionItem<T>>,
+    selectedValue: T,
+    onSelect: (T) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = title)
+        options.forEach { option ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(option.value) }
+                    .padding(vertical = 4.dp)
+            ) {
+                RadioButton(selected = option.value == selectedValue, onClick = { onSelect(option.value) })
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = option.label)
+            }
         }
     }
 }
 
-@Composable
-private fun ZoomBehaviorOption(label: String, selected: Boolean, onSelect: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RadioButton(selected = selected, onClick = onSelect)
-            Text(text = label, modifier = Modifier.padding(top = 12.dp))
-        }
-    }
-}
+data class SelectionItem<T>(val label: String, val value: T)
 

@@ -13,6 +13,10 @@ object SettingsStore {
     private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
     private const val KEY_DEFAULT_TAGS = "default_tags"
     private const val KEY_MARKER_SCALE = "marker_scale"
+    private const val KEY_DOWNLOADED_AREAS = "downloaded_areas"
+    private const val KEY_DOWNLOAD_TILE_SOURCE = "download_tile_source"
+    private const val KEY_DOWNLOAD_MULTI_THREAD = "download_multi_thread"
+    private const val KEY_DOWNLOAD_THREAD_COUNT = "download_thread_count"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -111,14 +115,157 @@ object SettingsStore {
     fun getMarkerScale(context: Context): Float {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getFloat(KEY_MARKER_SCALE, 1.0f)
-            .coerceIn(0.6f, 2.0f)
+            .coerceIn(0.3f, 1.75f)
     }
 
     fun setMarkerScale(context: Context, scale: Float) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.6f, 2.0f))
+            .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.3f, 1.75f))
             .apply()
+    }
+
+    fun getDownloadTileSourceId(context: Context): String {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DOWNLOAD_TILE_SOURCE, downloadTileSources.first().id)
+            ?: downloadTileSources.first().id
+    }
+
+    fun setDownloadTileSourceId(context: Context, sourceId: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DOWNLOAD_TILE_SOURCE, sourceId)
+            .apply()
+    }
+
+    fun getDownloadMultiThreadEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_DOWNLOAD_MULTI_THREAD, false)
+    }
+
+    fun setDownloadMultiThreadEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_DOWNLOAD_MULTI_THREAD, enabled)
+            .apply()
+    }
+
+    fun getDownloadThreadCount(context: Context): Int {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_DOWNLOAD_THREAD_COUNT, 4)
+            .coerceIn(2, 32)
+    }
+
+    fun setDownloadThreadCount(context: Context, count: Int) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_DOWNLOAD_THREAD_COUNT, count.coerceIn(2, 32))
+            .apply()
+    }
+
+    fun getDownloadedAreas(context: Context): List<DownloadedArea> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DOWNLOADED_AREAS, null)
+            ?: return emptyList()
+        return runCatching {
+            val array = org.json.JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    add(
+                        DownloadedArea(
+                            north = obj.getDouble("north"),
+                            south = obj.getDouble("south"),
+                            east = obj.getDouble("east"),
+                            west = obj.getDouble("west"),
+                            minZoom = obj.getInt("minZoom"),
+                            maxZoom = obj.getInt("maxZoom"),
+                            createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                        )
+                    )
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun addDownloadedArea(context: Context, area: DownloadedArea): List<DownloadedArea> {
+        val updated = getDownloadedAreas(context).toMutableList().apply { add(area) }
+        val deduped = dedupeAreas(updated)
+        saveDownloadedAreas(context, deduped)
+        return deduped
+    }
+
+    fun removeDownloadedArea(context: Context, area: DownloadedArea): List<DownloadedArea> {
+        val updated = getDownloadedAreas(context).filterNot { it.boundsKey() == area.boundsKey() }
+        saveDownloadedAreas(context, updated)
+        return updated
+    }
+
+    fun dedupeDownloadedAreas(context: Context): List<DownloadedArea> {
+        val deduped = dedupeAreas(getDownloadedAreas(context))
+        saveDownloadedAreas(context, deduped)
+        return deduped
+    }
+
+    private fun saveDownloadedAreas(context: Context, areas: List<DownloadedArea>) {
+        val array = org.json.JSONArray()
+        areas.forEach { area ->
+            val obj = org.json.JSONObject()
+            obj.put("north", area.north)
+            obj.put("south", area.south)
+            obj.put("east", area.east)
+            obj.put("west", area.west)
+            obj.put("minZoom", area.minZoom)
+            obj.put("maxZoom", area.maxZoom)
+            obj.put("createdAt", area.createdAt)
+            array.put(obj)
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DOWNLOADED_AREAS, array.toString())
+            .apply()
+    }
+
+    private fun dedupeAreas(areas: List<DownloadedArea>): List<DownloadedArea> {
+        if (areas.isEmpty()) return emptyList()
+        val sorted = areas.sortedBy { it.createdAt }
+        val merged = mutableListOf<DownloadedArea>()
+        for (area in sorted) {
+            val existingIndex = merged.indexOfFirst { candidate ->
+                zoomOverlaps(candidate, area) && bboxOverlaps(candidate, area)
+            }
+            if (existingIndex >= 0) {
+                val candidate = merged[existingIndex]
+                merged[existingIndex] = mergeAreas(candidate, area)
+            } else {
+                merged.add(area)
+            }
+        }
+        return merged
+    }
+
+    private fun zoomOverlaps(a: DownloadedArea, b: DownloadedArea): Boolean {
+        return a.minZoom <= b.maxZoom && b.minZoom <= a.maxZoom
+    }
+
+    private fun bboxOverlaps(a: DownloadedArea, b: DownloadedArea): Boolean {
+        val north = minOf(a.north, b.north)
+        val south = maxOf(a.south, b.south)
+        val west = maxOf(a.west, b.west)
+        val east = minOf(a.east, b.east)
+        return north >= south && east >= west
+    }
+
+    private fun mergeAreas(a: DownloadedArea, b: DownloadedArea): DownloadedArea {
+        return DownloadedArea(
+            north = maxOf(a.north, b.north),
+            south = minOf(a.south, b.south),
+            east = maxOf(a.east, b.east),
+            west = minOf(a.west, b.west),
+            minZoom = minOf(a.minZoom, b.minZoom),
+            maxZoom = maxOf(a.maxZoom, b.maxZoom),
+            createdAt = minOf(a.createdAt, b.createdAt)
+        )
     }
 
     private fun parseLongList(context: Context, key: String): List<Long> {

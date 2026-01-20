@@ -4,16 +4,23 @@ import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -21,35 +28,66 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.lavacrafter.maptimelinetool.LocationUtils
 import com.lavacrafter.maptimelinetool.R
+import com.lavacrafter.maptimelinetool.ui.DownloadTileSource
+import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapDownloadScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onAreaDownloaded: (DownloadedArea) -> Unit,
+    tileSource: DownloadTileSource,
+    useMultiThreadDownload: Boolean,
+    downloadThreadCount: Int
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
+    var cacheManagerRef: CacheManager? by remember { mutableStateOf(null) }
     var selectedBox: BoundingBox? by remember { mutableStateOf(null) }
     var minZoom by remember { mutableStateOf(8) }
     var maxZoom by remember { mutableStateOf(14) }
     var isDownloading by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(context.getString(R.string.map_download_status_idle)) }
+    var showHelp by remember { mutableStateOf(false) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val initialDownloadThreads = remember {
+        Configuration.getInstance().tileDownloadThreads.toInt()
+    }
+    val scrollState = rememberScrollState()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+            } catch (_: Exception) {
+            }
+            isDownloading = false
+            statusText = context.getString(R.string.map_download_status_idle)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -59,6 +97,11 @@ fun MapDownloadScreen(
                     OutlinedButton(onClick = onBack) {
                         Text(text = stringResource(R.string.action_back))
                     }
+                },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Text("?")
+                    }
                 }
             )
         }
@@ -67,29 +110,59 @@ fun MapDownloadScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AndroidView(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(320.dp),
-                factory = { viewContext ->
-                    MapView(viewContext).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(true)
-                        controller.setZoom(12.0)
-                        mapView = this
+                    .height(320.dp)
+                    .clipToBounds()
+            ) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp),
+                    factory = { viewContext ->
+                        MapView(viewContext).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            setTileSource(tileSource.toOsmdroidSource(viewContext))
+                            setMultiTouchControls(true)
+                            setBuiltInZoomControls(false)
+                            setUseDataConnection(true)
+                            controller.setZoom(12.0)
+                            mapView = this
+                        }
+                    },
+                    update = { map ->
+                        map.setTileSource(tileSource.toOsmdroidSource(context))
+                        mapView = map
                     }
-                },
-                update = { map ->
-                    mapView = map
+                )
+
+                FloatingActionButton(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(44.dp),
+                    onClick = {
+                        val map = mapView ?: return@FloatingActionButton
+                        val loc = LocationUtils.getLastKnownLocation(context)
+                        if (loc == null) {
+                            Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                        } else {
+                            map.controller.setZoom(15.0)
+                            map.controller.setCenter(GeoPoint(loc.latitude, loc.longitude))
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.action_center))
                 }
-            )
+            }
 
             Text(text = stringResource(R.string.map_download_min_zoom, minZoom))
             Slider(
@@ -120,7 +193,7 @@ fun MapDownloadScreen(
                         Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                         return@OutlinedButton
                     }
-                    selectedBox = map.boundingBox
+                    selectedBox = visibleBoundingBox(map)
                     Toast.makeText(context, context.getString(R.string.map_download_view_selected), Toast.LENGTH_SHORT).show()
                 }) {
                     Text(text = stringResource(R.string.map_download_use_current_view))
@@ -132,57 +205,106 @@ fun MapDownloadScreen(
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        val bbox = selectedBox ?: map.boundingBox
+                        val bbox = selectedBox ?: visibleBoundingBox(map)
                         if (bbox == null) {
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         val cacheManager = CacheManager(map)
+                        cacheManagerRef = cacheManager
+                        val desiredThreads = if (useMultiThreadDownload) {
+                            downloadThreadCount.coerceIn(2, 32)
+                        } else {
+                            initialDownloadThreads
+                        }
+                        Configuration.getInstance().setTileDownloadThreads(desiredThreads.toShort())
                         isDownloading = true
                         statusText = context.getString(R.string.map_download_status_running)
-                        cacheManager.downloadAreaAsync(context, bbox, minZoom, maxZoom, object : CacheManager.CacheManagerCallback {
-                            override fun downloadStarted() {
-                                mainHandler.post {
-                                    isDownloading = true
-                                    statusText = context.getString(R.string.map_download_status_running)
+                        runCatching {
+                            cacheManager.downloadAreaAsync(context, bbox, minZoom, maxZoom, object : CacheManager.CacheManagerCallback {
+                                override fun downloadStarted() {
+                                    mainHandler.post {
+                                        isDownloading = true
+                                        statusText = context.getString(R.string.map_download_status_running)
+                                    }
                                 }
-                            }
 
-                            override fun setPossibleTilesInArea(total: Int) {
-                                mainHandler.post {
-                                    statusText = context.getString(R.string.map_download_status_running_detail, 0, minZoom)
+                                override fun setPossibleTilesInArea(total: Int) {
+                                    mainHandler.post {
+                                        statusText = context.getString(R.string.map_download_status_running_detail, 0, minZoom)
+                                    }
                                 }
-                            }
 
-                            override fun onTaskComplete() {
-                                mainHandler.post {
-                                    isDownloading = false
-                                    statusText = context.getString(R.string.map_download_status_done)
+                                override fun onTaskComplete() {
+                                    mainHandler.post {
+                                        isDownloading = false
+                                        statusText = context.getString(R.string.map_download_status_done)
+                                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                                        onAreaDownloaded(
+                                            DownloadedArea(
+                                                north = bbox.latNorth,
+                                                south = bbox.latSouth,
+                                                east = bbox.lonEast,
+                                                west = bbox.lonWest,
+                                                minZoom = minZoom,
+                                                maxZoom = maxZoom
+                                            )
+                                        )
+                                    }
                                 }
-                            }
 
-                            override fun onTaskFailed(errors: Int) {
-                                mainHandler.post {
-                                    isDownloading = false
-                                    statusText = context.getString(R.string.map_download_status_failed, errors)
+                                override fun onTaskFailed(errors: Int) {
+                                    mainHandler.post {
+                                        isDownloading = false
+                                        statusText = context.getString(R.string.map_download_status_failed, errors)
+                                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                                    }
                                 }
-                            }
 
-                            override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
-                                mainHandler.post {
-                                    statusText = context.getString(
-                                        R.string.map_download_status_running_detail,
-                                        progress,
-                                        currentZoomLevel
-                                    )
+                                override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
+                                    mainHandler.post {
+                                        statusText = context.getString(
+                                            R.string.map_download_status_running_detail,
+                                            progress,
+                                            currentZoomLevel
+                                        )
+                                    }
                                 }
-                            }
-                        })
+                            })
+                        }.onFailure {
+                            isDownloading = false
+                            statusText = context.getString(R.string.map_download_status_failed, 1)
+                            Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                            Toast.makeText(context, context.getString(R.string.map_download_status_failed, 1), Toast.LENGTH_SHORT).show()
+                        }
                     },
                     enabled = !isDownloading
                 ) {
                     Text(text = stringResource(R.string.map_download_start))
                 }
+                    // no manual reset button: automatically restore state when resuming or exiting
+                    val lifecycleOwner = LocalLifecycleOwner.current
+                    DisposableEffect(lifecycleOwner) {
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_RESUME) {
+                                try {
+                                    Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                                } catch (_: Exception) {
+                                }
+                                isDownloading = false
+                                statusText = context.getString(R.string.map_download_status_idle)
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    BackHandler {
+                        // navigate back to parent screen
+                        onBack()
+                    }
             }
 
             if (isDownloading) {
@@ -198,4 +320,30 @@ fun MapDownloadScreen(
             }
         }
     }
+
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            title = { Text(stringResource(R.string.map_download_help_title)) },
+            text = { Text(stringResource(R.string.map_download_help_body)) },
+            confirmButton = {
+                Button(onClick = { showHelp = false }) {
+                    Text(stringResource(R.string.action_done))
+                }
+            }
+        )
+    }
+}
+
+private fun visibleBoundingBox(map: MapView): BoundingBox? {
+    if (map.width == 0 || map.height == 0) return map.boundingBox
+    val paddingPx = (12 * map.resources.displayMetrics.density).toInt()
+    val left = paddingPx
+    val top = paddingPx
+    val right = map.width - paddingPx
+    val bottom = map.height - paddingPx
+    val projection = map.projection ?: return map.boundingBox
+    val northWest = projection.fromPixels(left, top) as? GeoPoint ?: return map.boundingBox
+    val southEast = projection.fromPixels(right, bottom) as? GeoPoint ?: return map.boundingBox
+    return BoundingBox.fromGeoPoints(listOf(northWest, southEast))
 }
