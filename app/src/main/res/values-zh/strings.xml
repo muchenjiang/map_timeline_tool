@@ -130,4 +130,13 @@
     <string name="toast_map_not_ready">地图尚未准备好</string>
     <string name="map_download_help_title">如何下载</string>
     <string name="map_download_help_body">1）拖动/缩放地图到目标区域。\n2）点击“使用当前视图”锁定区域。\n3）设置最小/最大级别。\n4）点击开始下载。\n已下载瓦片会在地图页直接使用，新的区域不会自动下载。</string>
+        <string name="export_option_points_and_tags">保存打点与标签</string>
+        <string name="export_option_points_only">仅保存打点</string>
+        <string name="action_next">下一步</string>
+        <string name="export_subset_title">导出子集</string>
+        <string name="export_by_tag">按标签</string>
+        <string name="export_by_time">按时间范围</string>
+        <string name="export_manual_select">手动选择</string>
+        <string name="export_all">全部</string>
+        <string name="export_time_hint">输入时间范围（占位）</string>
 </resources>

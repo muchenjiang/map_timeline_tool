@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,9 @@ import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
@@ -72,6 +76,25 @@ fun MapScreen(
     val orientationProvider = remember { InternalCompassOrientationProvider(context) }
     val headingOverlay = remember { HeadingLocationOverlay(context) }
     val todayOrderById = remember(points) { buildTodayOrder(points) }
+    var interactionToken by remember { mutableStateOf(0) }
+    var showZoomTransient by remember { mutableStateOf(false) }
+    val onMapInteraction = rememberUpdatedState {
+        interactionToken += 1
+        showZoomTransient = true
+    }
+
+    LaunchedEffect(isActive, interactionToken) {
+        if (!isActive) {
+            showZoomTransient = false
+            return@LaunchedEffect
+        }
+        if (interactionToken == 0) return@LaunchedEffect
+        val token = interactionToken
+        delay(3000L)
+        if (interactionToken == token) {
+            showZoomTransient = false
+        }
+    }
 
     LaunchedEffect(selectedPointId, mapView, points) {
         val map = mapView ?: return@LaunchedEffect
@@ -144,6 +167,17 @@ fun MapScreen(
                         val last = points.first()
                         controller.setCenter(GeoPoint(last.latitude, last.longitude))
                     }
+                    addMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
+                            onMapInteraction.value.invoke()
+                            return false
+                        }
+
+                        override fun onZoom(event: ZoomEvent?): Boolean {
+                            onMapInteraction.value.invoke()
+                            return false
+                        }
+                    })
                     mapView = this
                 }
             },
@@ -234,7 +268,7 @@ fun MapScreen(
 
         val shouldShowZoom = when (zoomBehavior) {
             ZoomButtonBehavior.HIDE -> false
-            ZoomButtonBehavior.WHEN_ACTIVE -> isActive
+            ZoomButtonBehavior.WHEN_ACTIVE -> isActive && showZoomTransient
             ZoomButtonBehavior.ALWAYS -> true
         }
         if (shouldShowZoom) {

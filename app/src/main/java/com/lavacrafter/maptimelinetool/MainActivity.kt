@@ -49,6 +49,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.lavacrafter.maptimelinetool.export.CsvExporter
+import com.lavacrafter.maptimelinetool.ui.ExportSelection
+import com.lavacrafter.maptimelinetool.ui.ExportKind
+import com.lavacrafter.maptimelinetool.ui.ExportScreens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import com.lavacrafter.maptimelinetool.ui.AboutScreen
 import com.lavacrafter.maptimelinetool.ui.AddPointDialog
 import com.lavacrafter.maptimelinetool.ui.AppViewModel
@@ -100,6 +106,7 @@ class MainActivity : ComponentActivity() {
                 var showTagPickerForAdd by remember { mutableStateOf(false) }
                 var showTagPickerForEdit by remember { mutableStateOf(false) }
                 var showMapDownload by remember { mutableStateOf(false) }
+                var showExportFlow by remember { mutableStateOf(false) }
                 var settingsRoute by remember { mutableStateOf<SettingsRoute>(SettingsRoute.Main) }
                 var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
                 var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
@@ -144,6 +151,7 @@ class MainActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
+                var pendingExportSelection by remember { mutableStateOf<ExportSelection?>(null) }
                 val networkStatus by observeNetworkStatus(context)
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
@@ -176,6 +184,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions()
                 ) { result ->
@@ -297,6 +306,35 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val pointsState = viewModel.points.collectAsState().value
+                LaunchedEffect(pendingExportSelection, pointsState) {
+                    val sel = pendingExportSelection ?: return@LaunchedEffect
+                    val pointsToExport = when (sel.kind) {
+                        is ExportKind.All -> pointsState
+                        is ExportKind.ByTag -> {
+                            val tagId = (sel.kind as ExportKind.ByTag).tagId
+                            viewModel.observePointsForTag(tagId).first()
+                        }
+                        is ExportKind.ByTime -> {
+                            val k = sel.kind as ExportKind.ByTime
+                            pointsState.filter { it.timestamp in k.fromMs..k.toMs }
+                        }
+                        is ExportKind.Manual -> {
+                            val ids = (sel.kind as ExportKind.Manual).ids
+                            pointsState.filter { ids.contains(it.id) }
+                        }
+                    }
+                    val csv = withContext(Dispatchers.Default) {
+                        CsvExporter.buildCsv(pointsToExport)
+                    }
+                    val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                    val fileName = "map_timeline_${sdf.format(java.util.Date())}.csv"
+                    pendingCsv = csv
+                    exportLauncher.launch(fileName)
+                    pendingExportSelection = null
+                    showExportFlow = false
+                    tab = 2
+                    settingsRoute = SettingsRoute.Main
+                }
                 val tagsState = viewModel.tags.collectAsState().value
                 val quickTags = remember(tagsState, pinnedTagIds, recentTagIds) {
                     val pinned = tagsState.filter { pinnedTagIds.contains(it.id) }
@@ -305,17 +343,8 @@ class MainActivity : ComponentActivity() {
                 }
                 val downloadTileSource = remember(downloadTileSourceId) { downloadTileSourceById(downloadTileSourceId) }
                 val exportCsv: () -> Unit = {
-                    scope.launch {
-                        val points = viewModel.getAllPoints()
-                        if (points.isEmpty()) {
-                            Toast.makeText(context, context.getString(R.string.toast_no_points), Toast.LENGTH_SHORT).show()
-                            return@launch
-                        }
-                        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                        val fileName = "map_timeline_${sdf.format(Date())}.csv"
-                        pendingCsv = CsvExporter.buildCsv(points)
-                        exportLauncher.launch(fileName)
-                    }
+                    // Open export flow UI
+                    showExportFlow = true
                 }
 
                 Scaffold(
@@ -505,6 +534,14 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { settingsRoute = SettingsRoute.Main }
                                 )
                             }
+                        }
+                        if (showExportFlow) {
+                            ExportScreens(
+                                points = pointsState,
+                                tags = tagsState,
+                                onSelectExport = { sel -> pendingExportSelection = sel },
+                                onBack = { showExportFlow = false }
+                            )
                         }
                     }
                 }

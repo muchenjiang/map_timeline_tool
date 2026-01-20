@@ -143,4 +143,13 @@
     <string name="toast_map_not_ready">Map is not ready yet</string>
     <string name="map_download_help_title">How to download</string>
     <string name="map_download_help_body">1) Pan/zoom the map to the area you want.\n2) Tap “Use current view” to lock the area.\n3) Set min/max zoom levels.\n4) Tap Download to start.\nDownloaded tiles are used on the map page and new tiles won’t be fetched.</string>
+    <string name="export_option_points_and_tags">Save points and tags</string>
+    <string name="export_option_points_only">Save points only</string>
+    <string name="action_next">Next</string>
+    <string name="export_subset_title">Export subset</string>
+    <string name="export_by_tag">By tag</string>
+    <string name="export_by_time">By time range</string>
+    <string name="export_manual_select">Manual select</string>
+    <string name="export_all">All</string>
+    <string name="export_time_hint">Enter time range (placeholder)</string>
 </resources>

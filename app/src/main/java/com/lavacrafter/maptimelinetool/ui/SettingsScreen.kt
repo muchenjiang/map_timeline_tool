@@ -194,7 +194,7 @@ private fun SettingsOverviewScreen(
                 onClick = { onNavigateTo(SettingsRoute.Cache) }
             )
             SettingsOverviewItem(
-                title = stringResource(R.string.settings_download_title),
+                title = stringResource(R.string.settings_download_title) + " " + stringResource(R.string.settings_experimental_label),
                 description = stringResource(R.string.settings_download_desc),
                 onClick = { onNavigateTo(SettingsRoute.Download) }
             )
@@ -406,7 +406,7 @@ private fun DownloadSettings(
     onBack: () -> Unit
 ) {
     SettingsSubpageScaffold(
-        title = stringResource(R.string.settings_download_title),
+        title = stringResource(R.string.settings_download_title) + " " + stringResource(R.string.settings_experimental_label),
         tutorialText = stringResource(R.string.settings_help_download),
         onBack = onBack
     ) { modifier ->
@@ -429,7 +429,7 @@ private fun DownloadSettings(
                         checked = downloadMultiThreadEnabled,
                         onCheckedChange = onDownloadMultiThreadEnabledChange
                     )
-                    Text(text = stringResource(R.string.settings_download_multi_thread_label) + " " + stringResource(R.string.settings_experimental_label))
+                    Text(text = stringResource(R.string.settings_download_multi_thread_label))
                 }
 
                 Text(
