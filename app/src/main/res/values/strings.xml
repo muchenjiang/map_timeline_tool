@@ -70,6 +70,7 @@
     <string name="settings_download_source_label">Download source</string>
     <string name="settings_download_multi_thread_label">Enable multi-threaded download</string>
     <string name="settings_download_thread_count_label">Download threads: %1$d</string>
+    <string name="settings_experimental_label">(experimental)</string>
     <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
     <string name="tile_source_wikimedia">Wikimedia Maps</string>
     <string name="tile_source_attribution_openstreetmap">© OpenStreetMap contributors</string>

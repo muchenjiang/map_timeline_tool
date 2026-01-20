@@ -429,7 +429,7 @@ private fun DownloadSettings(
                         checked = downloadMultiThreadEnabled,
                         onCheckedChange = onDownloadMultiThreadEnabledChange
                     )
-                    Text(text = stringResource(R.string.settings_download_multi_thread_label))
+                    Text(text = stringResource(R.string.settings_download_multi_thread_label) + " " + stringResource(R.string.settings_experimental_label))
                 }
 
                 Text(

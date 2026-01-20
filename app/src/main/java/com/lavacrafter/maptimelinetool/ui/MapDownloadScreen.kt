@@ -7,6 +7,8 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +28,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -57,6 +65,7 @@ fun MapDownloadScreen(
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
+    var cacheManagerRef: CacheManager? by remember { mutableStateOf(null) }
     var selectedBox: BoundingBox? by remember { mutableStateOf(null) }
     var minZoom by remember { mutableStateOf(8) }
     var maxZoom by remember { mutableStateOf(14) }
@@ -66,6 +75,18 @@ fun MapDownloadScreen(
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val initialDownloadThreads = remember {
         Configuration.getInstance().tileDownloadThreads.toInt()
+    }
+    val scrollState = rememberScrollState()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+            } catch (_: Exception) {
+            }
+            isDownloading = false
+            statusText = context.getString(R.string.map_download_status_idle)
+        }
     }
 
     Scaffold(
@@ -89,7 +110,8 @@ fun MapDownloadScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
@@ -189,6 +211,7 @@ fun MapDownloadScreen(
                             return@Button
                         }
                         val cacheManager = CacheManager(map)
+                        cacheManagerRef = cacheManager
                         val desiredThreads = if (useMultiThreadDownload) {
                             downloadThreadCount.coerceIn(2, 32)
                         } else {
@@ -259,6 +282,29 @@ fun MapDownloadScreen(
                 ) {
                     Text(text = stringResource(R.string.map_download_start))
                 }
+                    // no manual reset button: automatically restore state when resuming or exiting
+                    val lifecycleOwner = LocalLifecycleOwner.current
+                    DisposableEffect(lifecycleOwner) {
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_RESUME) {
+                                try {
+                                    Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                                } catch (_: Exception) {
+                                }
+                                isDownloading = false
+                                statusText = context.getString(R.string.map_download_status_idle)
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycleOwner.lifecycle.removeObserver(observer)
+                        }
+                    }
+
+                    BackHandler {
+                        // navigate back to parent screen
+                        onBack()
+                    }
             }
 
             if (isDownloading) {
