@@ -15,7 +15,9 @@ import androidx.core.app.NotificationManagerCompat
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.AppDatabase
 import com.lavacrafter.maptimelinetool.data.PointEntity
+import com.lavacrafter.maptimelinetool.data.PointRepository
 import com.lavacrafter.maptimelinetool.ui.HeadingLocationOverlay
+import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,8 +39,8 @@ class QuickAddReceiver : BroadcastReceiver() {
                 val timestamp = System.currentTimeMillis()
                 val title = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
 
-                val dao = AppDatabase.get(context).pointDao()
-                dao.insert(
+                val repo = PointRepository(AppDatabase.get(context).pointDao())
+                val pointId = repo.insert(
                     PointEntity(
                         timestamp = timestamp,
                         latitude = location.latitude,
@@ -47,6 +49,9 @@ class QuickAddReceiver : BroadcastReceiver() {
                         note = ""
                     )
                 )
+                SettingsStore.getDefaultTagIds(context).forEach { tagId ->
+                    repo.insertPointTag(pointId, tagId)
+                }
                 showToast(context, context.getString(R.string.toast_point_added))
                 vibrateOnce(context)
                 showAddNotification(context)

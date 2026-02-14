@@ -13,8 +13,9 @@ local.properties
 *.log
 *.hprof
 
-# Android Studio
+# Android Studio & IDE
 .idea/
+.vscode/
 *.iml
 
 # Built application files
