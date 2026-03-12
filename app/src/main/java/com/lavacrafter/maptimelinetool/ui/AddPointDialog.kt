@@ -36,6 +36,8 @@ fun AddPointDialog(
     selectedTagIds: Set<Long>,
     title: String,
     note: String,
+    photoPath: String?,
+    pendingPhotoPath: String?,
     remainingSeconds: Int,
     isCountdownPaused: Boolean,
     onTitleChange: (String) -> Unit,
@@ -43,6 +45,11 @@ fun AddPointDialog(
     onUserTyping: () -> Unit,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    onConfirmPendingPhoto: () -> Unit,
+    onRetakePendingPhoto: () -> Unit,
+    onCancelPendingPhoto: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, Set<Long>) -> Unit
 ) {
@@ -58,7 +65,10 @@ fun AddPointDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            Button(onClick = { onConfirm(if (title.isBlank()) defaultTitle else title, note, createdAt, selectedTagIds) }) {
+            Button(
+                onClick = { onConfirm(if (title.isBlank()) defaultTitle else title, note, createdAt, selectedTagIds) },
+                enabled = pendingPhotoPath == null
+            ) {
                 Text(stringResource(R.string.action_save))
             }
         },
@@ -138,8 +148,17 @@ fun AddPointDialog(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                PointPhotoSection(
+                    attachedPhotoPath = photoPath,
+                    pendingPhotoPath = pendingPhotoPath,
+                    onCapturePhoto = onCapturePhoto,
+                    onRemovePhoto = onRemovePhoto,
+                    onConfirmPendingPhoto = onConfirmPendingPhoto,
+                    onRetakePendingPhoto = onRetakePendingPhoto,
+                    onCancelPendingPhoto = onCancelPendingPhoto
+                )
             }
         }
     )
 }
-

@@ -11,6 +11,7 @@ import com.lavacrafter.maptimelinetool.data.AppDatabase
 import com.lavacrafter.maptimelinetool.data.PointEntity
 import com.lavacrafter.maptimelinetool.data.PointRepository
 import com.lavacrafter.maptimelinetool.data.TagEntity
+import com.lavacrafter.maptimelinetool.deletePointPhoto
 import com.lavacrafter.maptimelinetool.ui.HeadingLocationOverlay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,7 +39,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         note: String,
         location: Location?,
         timestamp: Long,
-        tagIds: Set<Long>
+        tagIds: Set<Long>,
+        photoPath: String? = null
     ) {
         if (location == null) return
         viewModelScope.launch {
@@ -48,7 +50,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     latitude = location.latitude,
                     longitude = location.longitude,
                     title = title,
-                    note = note
+                    note = note,
+                    photoPath = photoPath
                 )
             )
             tagIds.forEach { tagId ->
@@ -57,15 +60,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun updatePoint(point: PointEntity, title: String, note: String) {
+    fun updatePoint(point: PointEntity, title: String, note: String, photoPath: String?) {
         viewModelScope.launch {
-            repo.update(point.copy(title = title, note = note))
+            repo.update(point.copy(title = title, note = note, photoPath = photoPath))
+            if (point.photoPath != photoPath) {
+                deletePointPhoto(point.photoPath)
+            }
         }
     }
 
     fun deletePoint(point: PointEntity) {
         viewModelScope.launch {
             repo.delete(point)
+            deletePointPhoto(point.photoPath)
         }
     }
 

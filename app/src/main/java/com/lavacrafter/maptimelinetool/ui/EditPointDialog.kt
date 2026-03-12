@@ -33,8 +33,15 @@ fun EditPointDialog(
     quickTags: List<TagEntity>,
     tags: List<TagEntity>,
     selectedTagIds: Set<Long>,
+    photoPath: String?,
+    pendingPhotoPath: String?,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    onConfirmPendingPhoto: () -> Unit,
+    onRetakePendingPhoto: () -> Unit,
+    onCancelPendingPhoto: () -> Unit,
     onSave: (String, String) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
@@ -49,7 +56,7 @@ fun EditPointDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onSave(title, note) }) {
+            TextButton(onClick = { onSave(title, note) }, enabled = pendingPhotoPath == null) {
                 Text(stringResource(R.string.action_save))
             }
         },
@@ -96,6 +103,16 @@ fun EditPointDialog(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
+                PointPhotoSection(
+                    attachedPhotoPath = photoPath,
+                    pendingPhotoPath = pendingPhotoPath,
+                    onCapturePhoto = onCapturePhoto,
+                    onRemovePhoto = onRemovePhoto,
+                    onConfirmPendingPhoto = onConfirmPendingPhoto,
+                    onRetakePendingPhoto = onRetakePendingPhoto,
+                    onCancelPendingPhoto = onCancelPendingPhoto
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(stringResource(R.string.label_lat_lon, point.latitude, point.longitude))
                 TextButton(onClick = onDelete) { Text(stringResource(R.string.action_delete)) }
