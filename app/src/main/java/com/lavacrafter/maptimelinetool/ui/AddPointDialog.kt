@@ -43,6 +43,10 @@ fun AddPointDialog(
     onUserTyping: () -> Unit,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
+    hasPhoto: Boolean,
+    onTakePhoto: () -> Unit,
+    onRetakePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, Set<Long>) -> Unit
 ) {
@@ -96,6 +100,26 @@ fun AddPointDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (hasPhoto) stringResource(R.string.label_photo_added) else stringResource(R.string.label_photo_not_added),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (hasPhoto) {
+                        OutlinedButton(onClick = onRetakePhoto) {
+                            Text(stringResource(R.string.action_retake_photo))
+                        }
+                        OutlinedButton(onClick = onRemovePhoto) {
+                            Text(stringResource(R.string.action_remove_photo))
+                        }
+                    } else {
+                        OutlinedButton(onClick = onTakePhoto) {
+                            Text(stringResource(R.string.action_take_photo))
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 val safeSeconds = remainingSeconds.coerceAtLeast(0)
                 val countdownLabel = if (isCountdownPaused) {
                     stringResource(R.string.label_auto_save_paused, safeSeconds)
@@ -142,4 +166,3 @@ fun AddPointDialog(
         }
     )
 }
-

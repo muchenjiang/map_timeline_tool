@@ -36,7 +36,11 @@ fun EditPointDialog(
     selectedTagIds: Set<Long>,
     onToggleTag: (Long) -> Unit,
     onOpenTagPicker: () -> Unit,
-    onSave: (String, String) -> Unit,
+    currentPhotoPath: String?,
+    onTakePhoto: () -> Unit,
+    onRetakePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    onSave: (String, String, String?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -50,7 +54,7 @@ fun EditPointDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onSave(title, note) }) {
+            TextButton(onClick = { onSave(title, note, currentPhotoPath) }) {
                 Text(stringResource(R.string.action_save))
             }
         },
@@ -76,6 +80,26 @@ fun EditPointDialog(
                     label = { Text(stringResource(R.string.dialog_note_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = if (currentPhotoPath.isNullOrBlank()) stringResource(R.string.label_photo_not_added) else stringResource(R.string.label_photo_added),
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (currentPhotoPath.isNullOrBlank()) {
+                        OutlinedButton(onClick = onTakePhoto) {
+                            Text(stringResource(R.string.action_take_photo))
+                        }
+                    } else {
+                        OutlinedButton(onClick = onRetakePhoto) {
+                            Text(stringResource(R.string.action_retake_photo))
+                        }
+                        OutlinedButton(onClick = onRemovePhoto) {
+                            Text(stringResource(R.string.action_remove_photo))
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(text = stringResource(R.string.label_quick_tags), fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))

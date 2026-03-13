@@ -48,6 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.FileProvider
+import com.lavacrafter.maptimelinetool.createPendingPointPhotoFile
+import com.lavacrafter.maptimelinetool.deletePointPhotoFile
+import com.lavacrafter.maptimelinetool.toStoredPhotoPath
 import com.lavacrafter.maptimelinetool.export.CsvExporter
 import com.lavacrafter.maptimelinetool.ui.ExportSelection
 import com.lavacrafter.maptimelinetool.ui.ExportKind
@@ -119,6 +123,8 @@ class MainActivity : ComponentActivity() {
                 var showExitDialog by remember { mutableStateOf(false) }
                 var newPointTitle by remember { mutableStateOf("") }
                 var newPointNote by remember { mutableStateOf("") }
+                var pendingAddPhotoPath by remember { mutableStateOf<String?>(null) }
+                var pendingAddPhotoUri by remember { mutableStateOf<Uri?>(null) }
                 var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
                 var isCountdownPaused by remember { mutableStateOf(false) }
                 var lastTypingTime by remember { mutableStateOf<Long?>(null) }
@@ -153,6 +159,18 @@ class MainActivity : ComponentActivity() {
                 var pendingCsv by remember { mutableStateOf<String?>(null) }
                 var pendingExportSelection by remember { mutableStateOf<ExportSelection?>(null) }
                 val networkStatus by observeNetworkStatus(context)
+                val addPhotoLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.TakePicture()
+                ) { isSuccess ->
+                    val photoPath = pendingAddPhotoPath
+                    if (!isSuccess) {
+                        scope.launch(Dispatchers.IO) {
+                            deletePointPhotoFile(context, photoPath)
+                        }
+                        pendingAddPhotoPath = null
+                    }
+                    pendingAddPhotoUri = null
+                }
                 val exportLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/csv")
                 ) { uri ->
@@ -198,7 +216,8 @@ class MainActivity : ComponentActivity() {
                     permissionLauncher.launch(
                         arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.CAMERA
                         )
                     )
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -219,8 +238,42 @@ class MainActivity : ComponentActivity() {
                 var selectedPointId by remember { mutableStateOf<Long?>(null) }
                 var editingPoint by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.PointEntity?>(null) }
                 var editingPointTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+                var editingPointPhotoPath by remember { mutableStateOf<String?>(null) }
+                var editingCaptureCandidatePhotoPath by remember { mutableStateOf<String?>(null) }
+                var pendingEditPhotoUri by remember { mutableStateOf<Uri?>(null) }
                 var editingTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
                 var selectedTag by remember { mutableStateOf<com.lavacrafter.maptimelinetool.data.TagEntity?>(null) }
+                val editPhotoLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.TakePicture()
+                ) { isSuccess ->
+                    val capturedPath = editingCaptureCandidatePhotoPath
+                    if (isSuccess) {
+                        editingPointPhotoPath = capturedPath
+                    } else {
+                        scope.launch(Dispatchers.IO) {
+                            deletePointPhotoFile(context, capturedPath)
+                        }
+                    }
+                    editingCaptureCandidatePhotoPath = null
+                    pendingEditPhotoUri = null
+                }
+                val clearPendingAddPhoto = {
+                    val pathToDelete = pendingAddPhotoPath
+                    pendingAddPhotoPath = null
+                    pendingAddPhotoUri = null
+                    scope.launch(Dispatchers.IO) {
+                        deletePointPhotoFile(context, pathToDelete)
+                    }
+                }
+                val clearUnsavedEditingPhoto = {
+                    val basePhotoPath = editingPoint?.photoPath
+                    val pathToDelete = editingPointPhotoPath
+                    if (!pathToDelete.isNullOrBlank() && pathToDelete != basePhotoPath) {
+                        scope.launch(Dispatchers.IO) {
+                            deletePointPhotoFile(context, pathToDelete)
+                        }
+                    }
+                }
                 val toggleEditingPointTag: (Long) -> Unit = { tagId ->
                     editingPoint?.let { point ->
                         val shouldAttach = !editingPointTagIds.contains(tagId)
@@ -236,12 +289,17 @@ class MainActivity : ComponentActivity() {
                 BackHandler(showTagPickerForEdit) { showTagPickerForEdit = false }
                 BackHandler(showTagPickerForAdd) { showTagPickerForAdd = false }
                 BackHandler(editingPoint != null) {
+                    clearUnsavedEditingPhoto()
                     editingPoint = null
                     editingPointTagIds = emptySet()
+                    editingPointPhotoPath = null
+                    editingCaptureCandidatePhotoPath = null
+                    pendingEditPhotoUri = null
                 }
                 BackHandler(editingTag != null) { editingTag = null }
                 BackHandler(showDialog && !showTagPickerForAdd && !showTagPickerForEdit) {
                     viewModel.cancelAutoAdd()
+                    clearPendingAddPhoto()
                     showDialog = false
                     pendingTimestamp = null
                     newPointSelectedTagIds = emptySet()
@@ -264,6 +322,8 @@ class MainActivity : ComponentActivity() {
                         lastTypingTime = null
                         newPointTitle = ""
                         newPointNote = ""
+                        pendingAddPhotoPath = null
+                        pendingAddPhotoUri = null
                     }
                 }
                 LaunchedEffect(lastTypingTime, showDialog) {
@@ -290,18 +350,24 @@ class MainActivity : ComponentActivity() {
                     val defaultTitle = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(createdAt))
                     val title = newPointTitle.trim().ifBlank { defaultTitle }
                     val note = newPointNote.trim()
+                    val addPhotoPath = pendingAddPhotoPath
                     scope.launch {
                         val loc = viewModel.getLastKnownLocation() ?: viewModel.getFreshLocation(2000L)
                         if (loc == null) {
                             Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                            withContext(Dispatchers.IO) {
+                                deletePointPhotoFile(context, addPhotoPath)
+                            }
                         } else {
-                            viewModel.addPointWithTags(title, note, loc, createdAt, newPointSelectedTagIds)
+                            viewModel.addPointWithTags(title, note, loc, createdAt, newPointSelectedTagIds, addPhotoPath)
                             vibrateOnce(context)
                             Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
                         }
                         showDialog = false
                         pendingTimestamp = null
                         newPointSelectedTagIds = emptySet()
+                        pendingAddPhotoPath = null
+                        pendingAddPhotoUri = null
                         showTagPickerForAdd = false
                     }
                 }
@@ -567,7 +633,42 @@ class MainActivity : ComponentActivity() {
                         onUserTyping = onUserTyping,
                         onToggleTag = toggleNewPointTag,
                         onOpenTagPicker = { showTagPickerForAdd = true },
+                        hasPhoto = !pendingAddPhotoPath.isNullOrBlank(),
+                        onTakePhoto = {
+                            val file = createPendingPointPhotoFile(context)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            pendingAddPhotoPath?.let { oldPath ->
+                                scope.launch(Dispatchers.IO) {
+                                    deletePointPhotoFile(context, oldPath)
+                                }
+                            }
+                            pendingAddPhotoPath = toStoredPhotoPath(file)
+                            pendingAddPhotoUri = uri
+                            addPhotoLauncher.launch(uri)
+                        },
+                        onRetakePhoto = {
+                            val oldPath = pendingAddPhotoPath
+                            val file = createPendingPointPhotoFile(context)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            pendingAddPhotoPath = toStoredPhotoPath(file)
+                            pendingAddPhotoUri = uri
+                            oldPath?.let {
+                                scope.launch(Dispatchers.IO) {
+                                    deletePointPhotoFile(context, it)
+                                }
+                            }
+                            addPhotoLauncher.launch(uri)
+                        },
+                        onRemovePhoto = {
+                            val oldPath = pendingAddPhotoPath
+                            pendingAddPhotoPath = null
+                            pendingAddPhotoUri = null
+                            scope.launch(Dispatchers.IO) {
+                                deletePointPhotoFile(context, oldPath)
+                            }
+                        },
                         onDismiss = {
+                            clearPendingAddPhoto()
                             showDialog = false
                             pendingTimestamp = null
                             newPointSelectedTagIds = emptySet()
@@ -580,17 +681,23 @@ class MainActivity : ComponentActivity() {
                         },
                         onConfirm = { title, note, createdAt, selectedTags ->
                             scope.launch {
+                                val addPhotoPath = pendingAddPhotoPath
                                 val loc = viewModel.getFreshLocation(5000L)
                                 if (loc == null) {
                                     Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                                    withContext(Dispatchers.IO) {
+                                        deletePointPhotoFile(context, addPhotoPath)
+                                    }
                                 } else {
-                                    viewModel.addPointWithTags(title, note, loc, createdAt, selectedTags)
+                                    viewModel.addPointWithTags(title, note, loc, createdAt, selectedTags, addPhotoPath)
                                     vibrateOnce(context)
                                     Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
                                 }
                                 showDialog = false
                                 pendingTimestamp = null
                                 newPointSelectedTagIds = emptySet()
+                                pendingAddPhotoPath = null
+                                pendingAddPhotoUri = null
                                 showTagPickerForAdd = false
                                 remainingSeconds = timeoutSeconds
                                 isCountdownPaused = false
@@ -633,6 +740,9 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(editingPoint) {
                     editingPoint?.let { point ->
                         editingPointTagIds = viewModel.getTagIdsForPoint(point.id).toSet()
+                        editingPointPhotoPath = point.photoPath
+                        editingCaptureCandidatePhotoPath = null
+                        pendingEditPhotoUri = null
                     }
                 }
 
@@ -645,15 +755,69 @@ class MainActivity : ComponentActivity() {
                         selectedTagIds = editingPointTagIds,
                         onToggleTag = toggleEditingPointTag,
                         onOpenTagPicker = { showTagPickerForEdit = true },
-                        onSave = { title, note ->
-                            viewModel.updatePoint(point, title, note)
+                        currentPhotoPath = editingPointPhotoPath,
+                        onTakePhoto = {
+                            val previousUnsavedPath = editingPointPhotoPath
+                            if (!previousUnsavedPath.isNullOrBlank() && previousUnsavedPath != point.photoPath) {
+                                scope.launch(Dispatchers.IO) {
+                                    deletePointPhotoFile(context, previousUnsavedPath)
+                                }
+                            }
+                            val file = createPendingPointPhotoFile(context)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            val newPath = toStoredPhotoPath(file)
+                            editingCaptureCandidatePhotoPath = newPath
+                            pendingEditPhotoUri = uri
+                            editPhotoLauncher.launch(uri)
+                        },
+                        onRetakePhoto = {
+                            val previousUnsavedPath = editingPointPhotoPath
+                            if (!previousUnsavedPath.isNullOrBlank() && previousUnsavedPath != point.photoPath) {
+                                scope.launch(Dispatchers.IO) {
+                                    deletePointPhotoFile(context, previousUnsavedPath)
+                                }
+                            }
+                            val file = createPendingPointPhotoFile(context)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            val newPath = toStoredPhotoPath(file)
+                            editingCaptureCandidatePhotoPath = newPath
+                            pendingEditPhotoUri = uri
+                            editPhotoLauncher.launch(uri)
+                        },
+                        onRemovePhoto = {
+                            val previousUnsavedPath = editingPointPhotoPath
+                            if (!previousUnsavedPath.isNullOrBlank() && previousUnsavedPath != point.photoPath) {
+                                scope.launch(Dispatchers.IO) {
+                                    deletePointPhotoFile(context, previousUnsavedPath)
+                                }
+                            }
+                            editingPointPhotoPath = null
+                        },
+                        onSave = { title, note, photoPath ->
+                            viewModel.updatePoint(point, title, note, photoPath)
                             editingPoint = null
+                            editingPointTagIds = emptySet()
+                            editingPointPhotoPath = null
+                            editingCaptureCandidatePhotoPath = null
+                            pendingEditPhotoUri = null
                         },
                         onDelete = {
+                            clearUnsavedEditingPhoto()
                             viewModel.deletePoint(point)
                             editingPoint = null
+                            editingPointTagIds = emptySet()
+                            editingPointPhotoPath = null
+                            editingCaptureCandidatePhotoPath = null
+                            pendingEditPhotoUri = null
                         },
-                        onDismiss = { editingPoint = null }
+                        onDismiss = {
+                            clearUnsavedEditingPhoto()
+                            editingPoint = null
+                            editingPointTagIds = emptySet()
+                            editingPointPhotoPath = null
+                            editingCaptureCandidatePhotoPath = null
+                            pendingEditPhotoUri = null
+                        }
                     )
                 }
 
