@@ -19,7 +19,7 @@ class PointWriteUseCase(
         photoPath: String? = null
     ) {
         val id = repository.insert(
-            buildPointEntity(
+            buildPoint(
                 title = title,
                 note = note,
                 location = location,
@@ -48,7 +48,7 @@ class PointWriteUseCase(
         pointsList.forEach { repository.insert(it) }
     }
 
-    private suspend fun buildPointEntity(
+    private suspend fun buildPoint(
         title: String,
         note: String,
         location: Location,
