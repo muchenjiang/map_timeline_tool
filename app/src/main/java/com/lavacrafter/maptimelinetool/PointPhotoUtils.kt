@@ -8,6 +8,8 @@ import androidx.exifinterface.media.ExifInterface
 import com.lavacrafter.maptimelinetool.ui.PhotoCompressFormat
 import java.io.File
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val POINT_PHOTO_DIR_NAME = "point_photos"
 
@@ -56,11 +58,11 @@ suspend fun preparePhotoForPersist(
     context: Context,
     photoPath: String?,
     options: PhotoPersistOptions
-): String? {
-    if (photoPath.isNullOrBlank() || options.losslessEnabled) return photoPath
-    val sourceFile = resolvePointPhotoFile(context, photoPath) ?: return photoPath
-    if (!sourceFile.exists() || !sourceFile.canRead()) return photoPath
-    val bitmap = BitmapFactory.decodeFile(sourceFile.absolutePath) ?: return photoPath
+): String? = withContext(Dispatchers.IO) {
+    if (photoPath.isNullOrBlank() || options.losslessEnabled) return@withContext photoPath
+    val sourceFile = resolvePointPhotoFile(context, photoPath) ?: return@withContext photoPath
+    if (!sourceFile.exists() || !sourceFile.canRead()) return@withContext photoPath
+    val bitmap = BitmapFactory.decodeFile(sourceFile.absolutePath) ?: return@withContext photoPath
     val orientation = runCatching {
         ExifInterface(sourceFile.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
     }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
@@ -76,18 +78,15 @@ suspend fun preparePhotoForPersist(
             corrected.compress(format, options.compressQuality.coerceIn(1, 100), output)
         }
     }.getOrDefault(false)
-    if (corrected != bitmap) {
-        corrected.recycle()
-    }
-    bitmap.recycle()
+    corrected.recycle()
     if (!compressed) {
         if (targetFile.exists()) targetFile.delete()
-        return photoPath
+        return@withContext photoPath
     }
     if (sourceFile != targetFile) {
         sourceFile.delete()
     }
-    return toStoredPhotoPath(targetFile)
+    return@withContext toStoredPhotoPath(targetFile)
 }
 
 fun applyExifOrientation(
@@ -112,5 +111,9 @@ fun applyExifOrientation(
         }
     }
     if (matrix.isIdentity) return bitmap
-    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true).also {
+        if (it != bitmap) {
+            bitmap.recycle()
+        }
+    }
 }

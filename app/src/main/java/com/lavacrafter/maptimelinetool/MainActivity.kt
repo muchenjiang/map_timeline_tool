@@ -269,17 +269,15 @@ class MainActivity : ComponentActivity() {
                     scope.launch(Dispatchers.IO) { deletePointPhotoFile(context, path) }
                 }
                 suspend fun preparePhotoPathForPersist(rawPhotoPath: String?): String? {
-                    return withContext(Dispatchers.IO) {
-                        preparePhotoForPersist(
-                            context = context,
-                            photoPath = rawPhotoPath,
-                            options = PhotoPersistOptions(
-                                losslessEnabled = settingsState.photoLosslessEnabled,
-                                compressFormat = settingsState.photoCompressFormat,
-                                compressQuality = settingsState.photoCompressQuality
-                            )
+                    return preparePhotoForPersist(
+                        context = context,
+                        photoPath = rawPhotoPath,
+                        options = PhotoPersistOptions(
+                            losslessEnabled = settingsState.photoLosslessEnabled,
+                            compressFormat = settingsState.photoCompressFormat,
+                            compressQuality = settingsState.photoCompressQuality
                         )
-                    }
+                    )
                 }
                 val clearPendingAddPhoto = {
                     val pathToDelete = pendingAddPhotoPath
@@ -971,11 +969,7 @@ private fun decodePreviewBitmap(file: java.io.File): android.graphics.Bitmap? {
     val orientation = runCatching {
         ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
     }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
-    val corrected = applyExifOrientation(decoded, orientation)
-    if (corrected != decoded) {
-        decoded.recycle()
-    }
-    return corrected
+    return applyExifOrientation(decoded, orientation)
 }
 
 enum class NetworkStatus { WIFI, CELLULAR, NONE }

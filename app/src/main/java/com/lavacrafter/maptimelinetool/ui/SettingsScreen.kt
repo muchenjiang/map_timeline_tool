@@ -418,7 +418,8 @@ private fun MapOperationsSettings(
                     )
                 ),
                 selectedValue = photoCompressFormat,
-                onSelect = onPhotoCompressFormatChange
+                onSelect = onPhotoCompressFormatChange,
+                enabled = !photoLosslessEnabled
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -718,7 +719,8 @@ private fun <T> SelectionGroup(
     title: String,
     options: List<SelectionItem<T>>,
     selectedValue: T,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
+    enabled: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = title)
@@ -727,10 +729,20 @@ private fun <T> SelectionGroup(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(option.value) }
+                    .let { base ->
+                        if (enabled) {
+                            base.clickable { onSelect(option.value) }
+                        } else {
+                            base
+                        }
+                    }
                     .padding(vertical = 4.dp)
             ) {
-                RadioButton(selected = option.value == selectedValue, onClick = { onSelect(option.value) })
+                RadioButton(
+                    selected = option.value == selectedValue,
+                    onClick = { onSelect(option.value) },
+                    enabled = enabled
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = option.label)
             }
