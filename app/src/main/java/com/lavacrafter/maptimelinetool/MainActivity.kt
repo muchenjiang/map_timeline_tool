@@ -97,7 +97,9 @@ import org.osmdroid.config.Configuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
-    private val viewModel: AppViewModel by viewModels()
+    private val viewModel: AppViewModel by viewModels {
+        AppViewModel.factory(application as MapTimelineApp)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

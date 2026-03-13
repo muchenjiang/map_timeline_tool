@@ -6,40 +6,36 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.CancellationSignal
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.lavacrafter.maptimelinetool.data.AppDatabase
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lavacrafter.maptimelinetool.data.toDomain
 import com.lavacrafter.maptimelinetool.data.toEntity
 import com.lavacrafter.maptimelinetool.data.PointEntity
-import com.lavacrafter.maptimelinetool.data.PointRepository
 import com.lavacrafter.maptimelinetool.data.TagEntity
-import com.lavacrafter.maptimelinetool.deletePointPhotoFile
+import com.lavacrafter.maptimelinetool.MapTimelineApp
 import com.lavacrafter.maptimelinetool.domain.repository.PointRepositoryGateway
 import com.lavacrafter.maptimelinetool.domain.usecase.PointWriteUseCase
 import com.lavacrafter.maptimelinetool.domain.usecase.TagManagementUseCase
-import com.lavacrafter.maptimelinetool.sensor.captureSensorSnapshot
 import com.lavacrafter.maptimelinetool.ui.HeadingLocationOverlay
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
-    private val repo: PointRepositoryGateway = PointRepository(AppDatabase.get(app).pointDao())
-    private val pointWriteUseCase = PointWriteUseCase(
-        repository = repo,
-        readSensorSnapshot = { captureSensorSnapshot(getApplication()) },
-        deletePhoto = { photoPath -> deletePointPhotoOnIo(photoPath) }
-    )
-    private val tagManagementUseCase = TagManagementUseCase(repo)
+class AppViewModel(
+    app: Application,
+    private val repo: PointRepositoryGateway,
+    private val pointWriteUseCase: PointWriteUseCase,
+    private val tagManagementUseCase: TagManagementUseCase
+) : AndroidViewModel(app) {
     val points = repo.observeAll().map { list -> list.map { it.toEntity() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val tags = tagManagementUseCase.observeTags().map { list -> list.map { it.toEntity() } }
@@ -131,12 +127,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun deletePointPhotoOnIo(photoPath: String?) {
-        withContext(Dispatchers.IO) {
-            deletePointPhotoFile(getApplication(), photoPath)
-        }
-    }
-
     private fun readCachedLocation(): Location? {
         val prefs = getApplication<Application>().getSharedPreferences(HeadingLocationOverlay.LOCATION_PREFS, Application.MODE_PRIVATE)
         if (!prefs.contains(HeadingLocationOverlay.KEY_LAT) || !prefs.contains(HeadingLocationOverlay.KEY_LON)) {
@@ -155,4 +145,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun getAllPoints(): List<PointEntity> = repo.getAll().map { it.toEntity() }
+
+    companion object {
+        fun factory(app: MapTimelineApp): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                AppViewModel(
+                    app = app,
+                    repo = app.pointRepositoryGateway,
+                    pointWriteUseCase = app.pointWriteUseCase,
+                    tagManagementUseCase = app.tagManagementUseCase
+                )
+            }
+        }
+    }
 }

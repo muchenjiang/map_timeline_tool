@@ -4,19 +4,29 @@ import android.app.Application
 import com.lavacrafter.maptimelinetool.data.AppDatabase
 import com.lavacrafter.maptimelinetool.data.PointRepository
 import com.lavacrafter.maptimelinetool.data.SettingsRepository
+import com.lavacrafter.maptimelinetool.domain.repository.PointRepositoryGateway
 import com.lavacrafter.maptimelinetool.domain.usecase.PointWriteUseCase
 import com.lavacrafter.maptimelinetool.domain.usecase.SettingsManagementUseCase
+import com.lavacrafter.maptimelinetool.domain.usecase.TagManagementUseCase
 import java.io.File
 import org.osmdroid.config.Configuration
 
 class MapTimelineApp : Application() {
+    val pointRepositoryGateway: PointRepositoryGateway by lazy {
+        PointRepository(AppDatabase.get(this).pointDao())
+    }
+
     val settingsManagementUseCase: SettingsManagementUseCase by lazy {
         SettingsManagementUseCase(SettingsRepository(this))
     }
 
+    val tagManagementUseCase: TagManagementUseCase by lazy {
+        TagManagementUseCase(pointRepositoryGateway)
+    }
+
     val pointWriteUseCase: PointWriteUseCase by lazy {
         PointWriteUseCase(
-            repository = PointRepository(AppDatabase.get(this).pointDao()),
+            repository = pointRepositoryGateway,
             readSensorSnapshot = { com.lavacrafter.maptimelinetool.sensor.captureSensorSnapshot(this) },
             deletePhoto = { photoPath -> deletePointPhotoFile(this, photoPath) }
         )
