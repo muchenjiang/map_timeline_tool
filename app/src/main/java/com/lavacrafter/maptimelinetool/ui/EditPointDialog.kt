@@ -2,6 +2,8 @@ package com.lavacrafter.maptimelinetool.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +30,7 @@ import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.PointEntity
 import com.lavacrafter.maptimelinetool.data.TagEntity
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EditPointDialog(
     point: PointEntity,
@@ -87,7 +90,11 @@ fun EditPointDialog(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     if (currentPhotoPath.isNullOrBlank()) {
                         OutlinedButton(onClick = onTakePhoto) {
                             Text(stringResource(R.string.action_take_photo))
