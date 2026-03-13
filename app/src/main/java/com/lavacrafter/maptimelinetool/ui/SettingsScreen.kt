@@ -67,6 +67,12 @@ fun SettingsScreen(
     onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
     downloadThreadCount: Int,
     onDownloadThreadCountChange: (Int) -> Unit,
+    photoLosslessEnabled: Boolean,
+    onPhotoLosslessEnabledChange: (Boolean) -> Unit,
+    photoCompressFormat: PhotoCompressFormat,
+    onPhotoCompressFormatChange: (PhotoCompressFormat) -> Unit,
+    photoCompressQuality: Int,
+    onPhotoCompressQualityChange: (Int) -> Unit,
     pressureEnabled: Boolean,
     onPressureEnabledChange: (Boolean) -> Unit,
     ambientLightEnabled: Boolean,
@@ -137,6 +143,15 @@ fun SettingsScreen(
             onZoomBehaviorChange = onZoomBehaviorChange,
             markerScale = markerScale,
             onMarkerScaleChange = onMarkerScaleChange,
+            onBack = onNavigateBack
+        )
+        SettingsRoute.PhotoCompression -> PhotoCompressionSettings(
+            photoLosslessEnabled = photoLosslessEnabled,
+            onPhotoLosslessEnabledChange = onPhotoLosslessEnabledChange,
+            photoCompressFormat = photoCompressFormat,
+            onPhotoCompressFormatChange = onPhotoCompressFormatChange,
+            photoCompressQuality = photoCompressQuality,
+            onPhotoCompressQualityChange = onPhotoCompressQualityChange,
             onBack = onNavigateBack
         )
         SettingsRoute.Cache -> CacheSettings(
@@ -219,6 +234,11 @@ private fun SettingsOverviewScreen(
                 title = stringResource(R.string.settings_map_operations_title),
                 description = stringResource(R.string.settings_map_operations_desc),
                 onClick = { onNavigateTo(SettingsRoute.MapOperations) }
+            )
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_photo_compression_title),
+                description = stringResource(R.string.settings_photo_compression_desc),
+                onClick = { onNavigateTo(SettingsRoute.PhotoCompression) }
             )
             SettingsOverviewItem(
                 title = stringResource(R.string.settings_cache_title),
@@ -364,6 +384,74 @@ private fun MapOperationsSettings(
                     value = markerScale,
                     onValueChange = onMarkerScaleChange,
                     valueRange = 0.3f..1.75f
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoCompressionSettings(
+    photoLosslessEnabled: Boolean,
+    onPhotoLosslessEnabledChange: (Boolean) -> Unit,
+    photoCompressFormat: PhotoCompressFormat,
+    onPhotoCompressFormatChange: (PhotoCompressFormat) -> Unit,
+    photoCompressQuality: Int,
+    onPhotoCompressQualityChange: (Int) -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsSubpageScaffold(
+        title = stringResource(R.string.settings_photo_compression_title),
+        tutorialText = stringResource(R.string.settings_help_photo_compression),
+        onBack = onBack
+    ) { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            SelectionGroup(
+                title = stringResource(R.string.settings_photo_compress_mode_label),
+                options = listOf(
+                    SelectionItem(
+                        label = stringResource(R.string.settings_photo_compress_mode_lossless),
+                        value = true
+                    ),
+                    SelectionItem(
+                        label = stringResource(R.string.settings_photo_compress_mode_compressed),
+                        value = false
+                    )
+                ),
+                selectedValue = photoLosslessEnabled,
+                onSelect = onPhotoLosslessEnabledChange
+            )
+
+            SelectionGroup(
+                title = stringResource(R.string.settings_photo_compress_format_label),
+                options = listOf(
+                    SelectionItem(
+                        label = stringResource(R.string.settings_photo_compress_format_jpeg),
+                        value = PhotoCompressFormat.JPEG
+                    ),
+                    SelectionItem(
+                        label = stringResource(R.string.settings_photo_compress_format_png),
+                        value = PhotoCompressFormat.PNG
+                    ),
+                    SelectionItem(
+                        label = stringResource(R.string.settings_photo_compress_format_webp),
+                        value = PhotoCompressFormat.WEBP
+                    )
+                ),
+                selectedValue = photoCompressFormat,
+                onSelect = onPhotoCompressFormatChange,
+                enabled = !photoLosslessEnabled
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(R.string.settings_photo_compress_quality_label))
+                Text(text = stringResource(R.string.settings_photo_compress_quality_value, photoCompressQuality))
+                Slider(
+                    value = photoCompressQuality.toFloat(),
+                    onValueChange = { onPhotoCompressQualityChange(it.roundToInt().coerceIn(1, 100)) },
+                    valueRange = 1f..100f,
+                    steps = 98,
+                    enabled = !photoLosslessEnabled
                 )
             }
         }
@@ -652,7 +740,8 @@ private fun <T> SelectionGroup(
     title: String,
     options: List<SelectionItem<T>>,
     selectedValue: T,
-    onSelect: (T) -> Unit
+    onSelect: (T) -> Unit,
+    enabled: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = title)
@@ -661,10 +750,20 @@ private fun <T> SelectionGroup(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(option.value) }
+                    .let { base ->
+                        if (enabled) {
+                            base.clickable { onSelect(option.value) }
+                        } else {
+                            base
+                        }
+                    }
                     .padding(vertical = 4.dp)
             ) {
-                RadioButton(selected = option.value == selectedValue, onClick = { onSelect(option.value) })
+                RadioButton(
+                    selected = option.value == selectedValue,
+                    onClick = { onSelect(option.value) },
+                    enabled = enabled
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = option.label)
             }
