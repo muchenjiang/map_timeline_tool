@@ -31,6 +31,16 @@ class SettingsManagementUseCaseTest {
         assertEquals(listOf(area), afterAdd)
         assertEquals(emptyList<SettingsDownloadedArea>(), afterRemove)
     }
+
+    @Test
+    fun `noise switch delegates read and write`() {
+        val fake = FakeSettingsGateway()
+        val useCase = SettingsManagementUseCase(fake)
+
+        useCase.setNoiseEnabled(true)
+
+        assertEquals(true, useCase.getNoiseEnabled())
+    }
 }
 
 private class FakeSettingsGateway : SettingsManagementGateway {
@@ -46,6 +56,7 @@ private class FakeSettingsGateway : SettingsManagementGateway {
     private var downloadTileSourceId: String = "osm"
     private var downloadMultiThreadEnabled: Boolean = false
     private var downloadThreadCount: Int = 4
+    private var noiseEnabled: Boolean = false
     private var downloadedAreas: List<SettingsDownloadedArea> = emptyList()
 
     override fun getTimeoutSeconds(): Int = timeoutSeconds
@@ -104,6 +115,11 @@ private class FakeSettingsGateway : SettingsManagementGateway {
     override fun getDownloadThreadCount(): Int = downloadThreadCount
     override fun setDownloadThreadCount(count: Int) {
         downloadThreadCount = count
+    }
+
+    override fun getNoiseEnabled(): Boolean = noiseEnabled
+    override fun setNoiseEnabled(enabled: Boolean) {
+        noiseEnabled = enabled
     }
 
     override fun getDownloadedAreas(): List<SettingsDownloadedArea> = downloadedAreas

@@ -13,6 +13,9 @@ import com.lavacrafter.maptimelinetool.domain.usecase.PointWriteUseCase
 import com.lavacrafter.maptimelinetool.domain.usecase.SettingsManagementUseCase
 import com.lavacrafter.maptimelinetool.domain.usecase.TagManagementUseCase
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.osmdroid.config.Configuration
 
 class MapTimelineApp : Application() {
@@ -35,6 +38,8 @@ class MapTimelineApp : Application() {
 class AppGraph(
     private val app: Application
 ) {
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     val pointRepositoryGateway: PointRepositoryGateway by lazy {
         PointRepository(AppDatabase.get(app).pointDao())
     }
@@ -76,7 +81,10 @@ class AppGraph(
         PointWriteUseCase(
             repository = pointRepositoryGateway,
             sensorSnapshotPort = sensorSnapshotPort,
-            deletePhoto = { photoPath -> deletePointPhotoFile(app, photoPath) }
+            deletePhoto = { photoPath -> deletePointPhotoFile(app, photoPath) },
+            shouldCollectNoise = { settingsManagementUseCase.getNoiseEnabled() },
+            collectNoiseDb = { com.lavacrafter.maptimelinetool.sensor.captureNoiseDb(app) },
+            asyncScope = appScope
         )
     }
 }

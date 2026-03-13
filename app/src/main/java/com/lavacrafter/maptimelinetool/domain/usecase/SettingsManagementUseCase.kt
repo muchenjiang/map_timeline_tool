@@ -44,6 +44,9 @@ class SettingsManagementUseCase(
     fun getDownloadThreadCount(): Int = settingsGateway.getDownloadThreadCount()
     fun setDownloadThreadCount(count: Int) = settingsGateway.setDownloadThreadCount(count)
 
+    fun getNoiseEnabled(): Boolean = settingsGateway.getNoiseEnabled()
+    fun setNoiseEnabled(enabled: Boolean) = settingsGateway.setNoiseEnabled(enabled)
+
     fun getDownloadedAreas(): List<SettingsDownloadedArea> = settingsGateway.getDownloadedAreas()
     fun addDownloadedArea(area: SettingsDownloadedArea): List<SettingsDownloadedArea> = settingsGateway.addDownloadedArea(area)
     fun removeDownloadedArea(area: SettingsDownloadedArea): List<SettingsDownloadedArea> = settingsGateway.removeDownloadedArea(area)

@@ -41,6 +41,9 @@ interface SettingsManagementGateway {
     fun getDownloadThreadCount(): Int
     fun setDownloadThreadCount(count: Int)
 
+    fun getNoiseEnabled(): Boolean
+    fun setNoiseEnabled(enabled: Boolean)
+
     fun getDownloadedAreas(): List<SettingsDownloadedArea>
     fun addDownloadedArea(area: SettingsDownloadedArea): List<SettingsDownloadedArea>
     fun removeDownloadedArea(area: SettingsDownloadedArea): List<SettingsDownloadedArea>

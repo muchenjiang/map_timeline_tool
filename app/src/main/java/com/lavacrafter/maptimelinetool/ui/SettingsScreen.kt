@@ -67,6 +67,8 @@ fun SettingsScreen(
     onDownloadMultiThreadEnabledChange: (Boolean) -> Unit,
     downloadThreadCount: Int,
     onDownloadThreadCountChange: (Int) -> Unit,
+    noiseEnabled: Boolean,
+    onNoiseEnabledChange: (Boolean) -> Unit,
     mapTileSourceId: String,
     onMapTileSourceChange: (String) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
@@ -106,6 +108,8 @@ fun SettingsScreen(
         SettingsRoute.MapOperations -> MapOperationsSettings(
             timeoutSeconds = timeoutSeconds,
             onTimeoutSecondsChange = onTimeoutSecondsChange,
+            noiseEnabled = noiseEnabled,
+            onNoiseEnabledChange = onNoiseEnabledChange,
             zoomBehavior = zoomBehavior,
             onZoomBehaviorChange = onZoomBehaviorChange,
             markerScale = markerScale,
@@ -279,6 +283,8 @@ private fun SettingsOverviewItem(title: String, description: String, onClick: ()
 private fun MapOperationsSettings(
     timeoutSeconds: Int,
     onTimeoutSecondsChange: (Int) -> Unit,
+    noiseEnabled: Boolean,
+    onNoiseEnabledChange: (Boolean) -> Unit,
     zoomBehavior: ZoomButtonBehavior,
     onZoomBehaviorChange: (ZoomButtonBehavior) -> Unit,
     markerScale: Float,
@@ -303,6 +309,18 @@ private fun MapOperationsSettings(
                     label = { Text(stringResource(R.string.settings_timeout_hint)) },
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = noiseEnabled, onCheckedChange = onNoiseEnabledChange)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(text = stringResource(R.string.settings_noise_collect_label))
+                    Text(
+                        text = stringResource(R.string.settings_noise_collect_desc),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             SelectionGroup(
@@ -566,4 +584,3 @@ private fun <T> SelectionGroup(
 }
 
 data class SelectionItem<T>(val label: String, val value: T)
-

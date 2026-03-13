@@ -14,5 +14,6 @@ data class SettingsUiState(
     val downloadTileSourceId: String = "",
     val downloadMultiThreadEnabled: Boolean = false,
     val downloadThreadCount: Int = 4,
+    val noiseEnabled: Boolean = false,
     val mapTileSourceId: String = mapTileSources.first().id
 )

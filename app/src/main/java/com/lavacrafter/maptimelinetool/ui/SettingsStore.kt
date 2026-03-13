@@ -17,6 +17,7 @@ object SettingsStore {
     private const val KEY_DOWNLOAD_TILE_SOURCE = "download_tile_source"
     private const val KEY_DOWNLOAD_MULTI_THREAD = "download_multi_thread"
     private const val KEY_DOWNLOAD_THREAD_COUNT = "download_thread_count"
+    private const val KEY_NOISE_ENABLED = "noise_enabled"
 
     fun getTimeoutSeconds(context: Context): Int {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -160,6 +161,18 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_DOWNLOAD_THREAD_COUNT, count.coerceIn(2, 32))
+            .apply()
+    }
+
+    fun getNoiseEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_NOISE_ENABLED, false)
+    }
+
+    fun setNoiseEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_NOISE_ENABLED, enabled)
             .apply()
     }
 

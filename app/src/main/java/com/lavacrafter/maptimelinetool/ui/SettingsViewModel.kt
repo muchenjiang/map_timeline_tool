@@ -30,7 +30,8 @@ class SettingsViewModel(
             downloadedAreas = settingsUseCase.getDownloadedAreas().map { it.toUi() },
             downloadTileSourceId = settingsUseCase.getDownloadTileSourceId(),
             downloadMultiThreadEnabled = settingsUseCase.getDownloadMultiThreadEnabled(),
-            downloadThreadCount = settingsUseCase.getDownloadThreadCount()
+            downloadThreadCount = settingsUseCase.getDownloadThreadCount(),
+            noiseEnabled = settingsUseCase.getNoiseEnabled()
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -67,6 +68,11 @@ class SettingsViewModel(
     fun setDownloadThreadCount(count: Int) {
         settingsUseCase.setDownloadThreadCount(count)
         _uiState.update { it.copy(downloadThreadCount = count) }
+    }
+
+    fun setNoiseEnabled(enabled: Boolean) {
+        settingsUseCase.setNoiseEnabled(enabled)
+        _uiState.update { it.copy(noiseEnabled = enabled) }
     }
 
     fun setMapTileSourceId(sourceId: String) {
