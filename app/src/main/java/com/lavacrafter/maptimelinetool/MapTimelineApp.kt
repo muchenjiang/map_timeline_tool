@@ -57,17 +57,17 @@ class AppGraph(
             override suspend fun readSnapshot(): PointSensorSnapshot {
                 val raw = com.lavacrafter.maptimelinetool.sensor.captureSensorSnapshot(app)
                 return PointSensorSnapshot(
-                    pressureHpa = raw.pressureHpa,
-                    ambientLightLux = raw.ambientLightLux,
-                    accelerometerX = raw.accelerometerX,
-                    accelerometerY = raw.accelerometerY,
-                    accelerometerZ = raw.accelerometerZ,
-                    gyroscopeX = raw.gyroscopeX,
-                    gyroscopeY = raw.gyroscopeY,
-                    gyroscopeZ = raw.gyroscopeZ,
-                    magnetometerX = raw.magnetometerX,
-                    magnetometerY = raw.magnetometerY,
-                    magnetometerZ = raw.magnetometerZ
+                    pressureHpa = if (settingsManagementUseCase.getPressureEnabled()) raw.pressureHpa else null,
+                    ambientLightLux = if (settingsManagementUseCase.getAmbientLightEnabled()) raw.ambientLightLux else null,
+                    accelerometerX = if (settingsManagementUseCase.getAccelerometerEnabled()) raw.accelerometerX else null,
+                    accelerometerY = if (settingsManagementUseCase.getAccelerometerEnabled()) raw.accelerometerY else null,
+                    accelerometerZ = if (settingsManagementUseCase.getAccelerometerEnabled()) raw.accelerometerZ else null,
+                    gyroscopeX = if (settingsManagementUseCase.getGyroscopeEnabled()) raw.gyroscopeX else null,
+                    gyroscopeY = if (settingsManagementUseCase.getGyroscopeEnabled()) raw.gyroscopeY else null,
+                    gyroscopeZ = if (settingsManagementUseCase.getGyroscopeEnabled()) raw.gyroscopeZ else null,
+                    magnetometerX = if (settingsManagementUseCase.getMagnetometerEnabled()) raw.magnetometerX else null,
+                    magnetometerY = if (settingsManagementUseCase.getMagnetometerEnabled()) raw.magnetometerY else null,
+                    magnetometerZ = if (settingsManagementUseCase.getMagnetometerEnabled()) raw.magnetometerZ else null
                 )
             }
         }

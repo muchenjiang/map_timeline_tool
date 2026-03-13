@@ -41,6 +41,16 @@ interface SettingsManagementGateway {
     fun getDownloadThreadCount(): Int
     fun setDownloadThreadCount(count: Int)
 
+    fun getPressureEnabled(): Boolean
+    fun setPressureEnabled(enabled: Boolean)
+    fun getAmbientLightEnabled(): Boolean
+    fun setAmbientLightEnabled(enabled: Boolean)
+    fun getAccelerometerEnabled(): Boolean
+    fun setAccelerometerEnabled(enabled: Boolean)
+    fun getGyroscopeEnabled(): Boolean
+    fun setGyroscopeEnabled(enabled: Boolean)
+    fun getMagnetometerEnabled(): Boolean
+    fun setMagnetometerEnabled(enabled: Boolean)
     fun getNoiseEnabled(): Boolean
     fun setNoiseEnabled(enabled: Boolean)
 

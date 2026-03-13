@@ -64,6 +64,15 @@
     <string name="settings_theme_follow_system_hint">跟随系统 — 控制深色模式</string>
     <string name="settings_timeout_label">打点超时（秒）</string>
     <string name="settings_timeout_hint">超时秒数</string>
+    <string name="settings_sensors_title">传感器</string>
+    <string name="settings_sensors_desc">按传感器分别配置采集开关。</string>
+    <string name="settings_help_sensors">可分别开启或关闭每种传感器对新打点的采集。噪音采集需要麦克风权限。</string>
+    <string name="settings_sensor_pressure">气压计</string>
+    <string name="settings_sensor_ambient_light">环境光</string>
+    <string name="settings_sensor_accelerometer">加速度计</string>
+    <string name="settings_sensor_gyroscope">陀螺仪</string>
+    <string name="settings_sensor_magnetometer">磁力计</string>
+    <string name="settings_sensor_noise">噪音（3 秒 dBFS）</string>
     <string name="settings_noise_collect_label">采集 3 秒噪音</string>
     <string name="settings_noise_collect_desc">需要麦克风权限，打点后异步采集并回填。</string>
     <string name="settings_cache_policy_label">地图缓存策略</string>

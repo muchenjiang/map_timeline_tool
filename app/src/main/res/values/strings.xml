@@ -67,6 +67,15 @@
     <string name="settings_theme_dark_mode">Dark mode</string>
     <string name="settings_timeout_label">Add timeout (seconds)</string>
     <string name="settings_timeout_hint">Timeout seconds</string>
+    <string name="settings_sensors_title">Sensors</string>
+    <string name="settings_sensors_desc">Configure each sensor capture switch.</string>
+    <string name="settings_help_sensors">Turn each sensor on or off independently for new points. Noise capture requires microphone permission.</string>
+    <string name="settings_sensor_pressure">Barometer</string>
+    <string name="settings_sensor_ambient_light">Ambient light</string>
+    <string name="settings_sensor_accelerometer">Accelerometer</string>
+    <string name="settings_sensor_gyroscope">Gyroscope</string>
+    <string name="settings_sensor_magnetometer">Magnetometer</string>
+    <string name="settings_sensor_noise">Noise (3s dBFS)</string>
     <string name="settings_noise_collect_label">Collect 3-second noise</string>
     <string name="settings_noise_collect_desc">Requires microphone permission. Captured asynchronously after point save.</string>
     <string name="settings_map_operations_title">Map operations</string>

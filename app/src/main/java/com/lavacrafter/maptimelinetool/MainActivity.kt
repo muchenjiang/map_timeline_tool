@@ -553,6 +553,16 @@ class MainActivity : ComponentActivity() {
                                     onDownloadMultiThreadEnabledChange = settingsViewModel::setDownloadMultiThreadEnabled,
                                     downloadThreadCount = settingsState.downloadThreadCount,
                                     onDownloadThreadCountChange = settingsViewModel::setDownloadThreadCount,
+                                    pressureEnabled = settingsState.pressureEnabled,
+                                    onPressureEnabledChange = settingsViewModel::setPressureEnabled,
+                                    ambientLightEnabled = settingsState.ambientLightEnabled,
+                                    onAmbientLightEnabledChange = settingsViewModel::setAmbientLightEnabled,
+                                    accelerometerEnabled = settingsState.accelerometerEnabled,
+                                    onAccelerometerEnabledChange = settingsViewModel::setAccelerometerEnabled,
+                                    gyroscopeEnabled = settingsState.gyroscopeEnabled,
+                                    onGyroscopeEnabledChange = settingsViewModel::setGyroscopeEnabled,
+                                    magnetometerEnabled = settingsState.magnetometerEnabled,
+                                    onMagnetometerEnabledChange = settingsViewModel::setMagnetometerEnabled,
                                     noiseEnabled = settingsState.noiseEnabled,
                                     onNoiseEnabledChange = { enabled ->
                                         if (!enabled) {
