@@ -790,9 +790,10 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                if (!previewPhotoPath.isNullOrBlank()) {
+                val activePreviewPhotoPath = previewPhotoPath
+                if (!activePreviewPhotoPath.isNullOrBlank()) {
                     PhotoPreviewDialog(
-                        photoPath = previewPhotoPath!!,
+                        photoPath = activePreviewPhotoPath,
                         onDismiss = { previewPhotoPath = null }
                     )
                 }
@@ -910,7 +911,7 @@ private fun PhotoPreviewDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val photoFile = remember(photoPath, context) { resolvePointPhotoFile(context, photoPath) }
+    val photoFile = remember(photoPath) { resolvePointPhotoFile(context, photoPath) }
     val bitmap = remember(photoFile?.absolutePath) {
         photoFile?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.absolutePath) }
     }

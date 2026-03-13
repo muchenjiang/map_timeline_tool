@@ -196,7 +196,7 @@ fun MapScreen(
                         infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(org.osmdroid.library.R.layout.bonuspack_bubble, map) {
                             override fun onOpen(item: Any?) {
                                 super.onOpen(item)
-                                mView.setBackgroundColor(Color.parseColor("#FCFCFC"))
+                                mView.setBackgroundColor(INFO_WINDOW_BACKGROUND_COLOR)
                                 mView.setOnClickListener {
                                     onEditPoint(p)
                                 }
@@ -331,6 +331,7 @@ private val SPECTRUM_COLORS = listOf(
 )
 
 private val DEFAULT_MARKER_COLOR = Color.parseColor("#2E7D32")
+private val INFO_WINDOW_BACKGROUND_COLOR = Color.parseColor("#FCFCFC")
 
 private fun spectrumColor(order: Int): Int {
     val index = (order - 1).coerceAtLeast(0) % SPECTRUM_COLORS.size
