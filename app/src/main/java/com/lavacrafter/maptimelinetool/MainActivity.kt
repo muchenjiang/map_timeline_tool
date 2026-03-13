@@ -60,6 +60,8 @@ import com.lavacrafter.maptimelinetool.createPendingPointPhotoFile
 import com.lavacrafter.maptimelinetool.deletePointPhotoFile
 import com.lavacrafter.maptimelinetool.resolvePointPhotoFile
 import com.lavacrafter.maptimelinetool.toStoredPhotoPath
+import com.lavacrafter.maptimelinetool.data.SettingsRepository
+import com.lavacrafter.maptimelinetool.domain.usecase.SettingsManagementUseCase
 import com.lavacrafter.maptimelinetool.export.CsvExporter
 import com.lavacrafter.maptimelinetool.ui.ExportSelection
 import com.lavacrafter.maptimelinetool.ui.ExportKind
@@ -75,7 +77,6 @@ import com.lavacrafter.maptimelinetool.ui.EditTagDialog
 import com.lavacrafter.maptimelinetool.ui.ListScreen
 import com.lavacrafter.maptimelinetool.ui.MapScreen
 import com.lavacrafter.maptimelinetool.ui.MapCachePolicy
-import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.TagDetailScreen
 import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
@@ -100,31 +101,32 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val settingsUseCase = SettingsManagementUseCase(SettingsRepository(this))
 
-        applyLanguagePreference(SettingsStore.getLanguagePreference(this))
+        applyLanguagePreference(settingsUseCase.getLanguagePreference())
 
         setContent {
             var isDarkTheme by remember { mutableStateOf(false) }
-            var followSystemTheme by remember { mutableStateOf(SettingsStore.getFollowSystemTheme(this)) }
+            var followSystemTheme by remember { mutableStateOf(settingsUseCase.getFollowSystemTheme()) }
             val isSystemDark = isSystemInDarkTheme()
             MapTimelineToolTheme(darkTheme = if (followSystemTheme) isSystemDark else isDarkTheme) {
                 val context = LocalContext.current
-                var timeoutSeconds by remember { mutableStateOf(SettingsStore.getTimeoutSeconds(context)) }
-                var cachePolicy by remember { mutableStateOf(SettingsStore.getCachePolicy(context)) }
-                var pinnedTagIds by remember { mutableStateOf(SettingsStore.getPinnedTagIds(context).toSet()) }
-                var recentTagIds by remember { mutableStateOf(SettingsStore.getRecentTagIds(context)) }
-                var zoomBehavior by remember { mutableStateOf(SettingsStore.getZoomButtonBehavior(context)) }
-                var markerScale by remember { mutableStateOf(SettingsStore.getMarkerScale(context)) }
+                var timeoutSeconds by remember { mutableStateOf(settingsUseCase.getTimeoutSeconds()) }
+                var cachePolicy by remember { mutableStateOf(settingsUseCase.getCachePolicy()) }
+                var pinnedTagIds by remember { mutableStateOf(settingsUseCase.getPinnedTagIds().toSet()) }
+                var recentTagIds by remember { mutableStateOf(settingsUseCase.getRecentTagIds()) }
+                var zoomBehavior by remember { mutableStateOf(settingsUseCase.getZoomButtonBehavior()) }
+                var markerScale by remember { mutableStateOf(settingsUseCase.getMarkerScale()) }
                 var showTagPickerForAdd by remember { mutableStateOf(false) }
                 var showTagPickerForEdit by remember { mutableStateOf(false) }
                 var showMapDownload by remember { mutableStateOf(false) }
                 var showExportFlow by remember { mutableStateOf(false) }
                 var settingsRoute by remember { mutableStateOf<SettingsRoute>(SettingsRoute.Main) }
-                var defaultTagIds by remember { mutableStateOf(SettingsStore.getDefaultTagIds(context).toSet()) }
-                var downloadedAreas by remember { mutableStateOf(SettingsStore.getDownloadedAreas(context)) }
-                var downloadTileSourceId by remember { mutableStateOf(SettingsStore.getDownloadTileSourceId(context)) }
-                var downloadMultiThreadEnabled by remember { mutableStateOf(SettingsStore.getDownloadMultiThreadEnabled(context)) }
-                var downloadThreadCount by remember { mutableStateOf(SettingsStore.getDownloadThreadCount(context)) }
+                var defaultTagIds by remember { mutableStateOf(settingsUseCase.getDefaultTagIds().toSet()) }
+                var downloadedAreas by remember { mutableStateOf(settingsUseCase.getDownloadedAreas()) }
+                var downloadTileSourceId by remember { mutableStateOf(settingsUseCase.getDownloadTileSourceId()) }
+                var downloadMultiThreadEnabled by remember { mutableStateOf(settingsUseCase.getDownloadMultiThreadEnabled()) }
+                var downloadThreadCount by remember { mutableStateOf(settingsUseCase.getDownloadThreadCount()) }
                 var mapTileSourceId by remember { mutableStateOf(mapTileSources.first().id) }
                 var newPointSelectedTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
                 var showPinLimitDialog by remember { mutableStateOf(false) }
@@ -141,7 +143,7 @@ class MainActivity : ComponentActivity() {
                 val sheetState = scaffoldState.bottomSheetState
 
                 val recordRecentTag: (Long) -> Unit = { tagId ->
-                    recentTagIds = SettingsStore.addRecentTagId(context, tagId)
+                    recentTagIds = settingsUseCase.addRecentTagId(tagId)
                 }
                 val toggleDefaultTag: (Long) -> Unit = { tagId ->
                     defaultTagIds = if (defaultTagIds.contains(tagId)) {
@@ -149,7 +151,7 @@ class MainActivity : ComponentActivity() {
                     } else {
                         defaultTagIds + tagId
                     }
-                    SettingsStore.setDefaultTagIds(context, defaultTagIds.toList())
+                    settingsUseCase.setDefaultTagIds(defaultTagIds.toList())
                 }
                 val toggleNewPointTag: (Long) -> Unit = { tagId ->
                     newPointSelectedTagIds = if (newPointSelectedTagIds.contains(tagId)) {
@@ -516,7 +518,7 @@ class MainActivity : ComponentActivity() {
                                                 showPinLimitDialog = true
                                             } else {
                                                 pinnedTagIds = if (shouldPin) pinnedTagIds + tag.id else pinnedTagIds - tag.id
-                                                SettingsStore.setPinnedTagIds(context, pinnedTagIds.toList())
+                                                settingsUseCase.setPinnedTagIds(pinnedTagIds.toList())
                                             }
                                         }
                                     )
@@ -528,7 +530,7 @@ class MainActivity : ComponentActivity() {
                                 com.lavacrafter.maptimelinetool.ui.MapDownloadScreen(
                                     onBack = { showMapDownload = false },
                                     onAreaDownloaded = { area ->
-                                        downloadedAreas = SettingsStore.addDownloadedArea(context, area)
+                                        downloadedAreas = settingsUseCase.addDownloadedArea(area)
                                     },
                                     tileSource = downloadTileSource,
                                     useMultiThreadDownload = downloadMultiThreadEnabled,
@@ -541,53 +543,53 @@ class MainActivity : ComponentActivity() {
                                     followSystemTheme = followSystemTheme,
                                     onFollowSystemThemeChange = {
                                         followSystemTheme = it
-                                        SettingsStore.setFollowSystemTheme(context, it)
+                                        settingsUseCase.setFollowSystemTheme(it)
                                     },
                                     timeoutSeconds = timeoutSeconds,
                                     onTimeoutSecondsChange = {
                                         timeoutSeconds = it
-                                        SettingsStore.setTimeoutSeconds(context, it)
+                                        settingsUseCase.setTimeoutSeconds(it)
                                     },
                                     cachePolicy = cachePolicy,
                                     onCachePolicyChange = {
                                         cachePolicy = it
-                                        SettingsStore.setCachePolicy(context, it)
+                                        settingsUseCase.setCachePolicy(it)
                                     },
                                     networkStatus = networkStatus,
                                     selectedDownloadTileSourceId = downloadTileSourceId,
                                     onDownloadTileSourceChange = {
                                         downloadTileSourceId = it
-                                        SettingsStore.setDownloadTileSourceId(context, it)
+                                        settingsUseCase.setDownloadTileSourceId(it)
                                     },
                                     downloadMultiThreadEnabled = downloadMultiThreadEnabled,
                                     onDownloadMultiThreadEnabledChange = {
                                         downloadMultiThreadEnabled = it
-                                        SettingsStore.setDownloadMultiThreadEnabled(context, it)
+                                        settingsUseCase.setDownloadMultiThreadEnabled(it)
                                     },
                                     downloadThreadCount = downloadThreadCount,
                                     onDownloadThreadCountChange = {
                                         downloadThreadCount = it
-                                        SettingsStore.setDownloadThreadCount(context, it)
+                                        settingsUseCase.setDownloadThreadCount(it)
                                     },
                                     mapTileSourceId = mapTileSourceId,
                                     onMapTileSourceChange = { mapTileSourceId = it },
                                     zoomBehavior = zoomBehavior,
                                     onZoomBehaviorChange = {
                                         zoomBehavior = it
-                                        SettingsStore.setZoomButtonBehavior(context, it)
+                                        settingsUseCase.setZoomButtonBehavior(it)
                                     },
                                     markerScale = markerScale,
                                     onMarkerScaleChange = {
                                         markerScale = it
-                                        SettingsStore.setMarkerScale(context, it)
+                                        settingsUseCase.setMarkerScale(it)
                                     },
                                     onOpenMapDownload = { showMapDownload = true },
                                     downloadedAreas = downloadedAreas,
                                     onRemoveDownloadedArea = { area ->
-                                        downloadedAreas = SettingsStore.removeDownloadedArea(context, area)
+                                        downloadedAreas = settingsUseCase.removeDownloadedArea(area)
                                     },
                                     onDeduplicateDownloadedAreas = {
-                                        downloadedAreas = SettingsStore.dedupeDownloadedAreas(context)
+                                        downloadedAreas = settingsUseCase.dedupeDownloadedAreas()
                                     },
                                     onExportCsv = exportCsv,
                                     onImportCsv = { importLauncher.launch("text/*") },

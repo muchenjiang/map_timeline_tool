@@ -16,9 +16,10 @@ import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.AppDatabase
 import com.lavacrafter.maptimelinetool.data.PointEntity
 import com.lavacrafter.maptimelinetool.data.PointRepository
+import com.lavacrafter.maptimelinetool.data.SettingsRepository
+import com.lavacrafter.maptimelinetool.domain.usecase.SettingsManagementUseCase
 import com.lavacrafter.maptimelinetool.sensor.captureSensorSnapshot
 import com.lavacrafter.maptimelinetool.ui.HeadingLocationOverlay
-import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,6 +43,7 @@ class QuickAddReceiver : BroadcastReceiver() {
                 val sensorSnapshot = captureSensorSnapshot(context)
 
                 val repo = PointRepository(AppDatabase.get(context).pointDao())
+                val settingsUseCase = SettingsManagementUseCase(SettingsRepository(context))
                 val pointId = repo.insert(
                     PointEntity(
                         timestamp = timestamp,
@@ -62,7 +64,7 @@ class QuickAddReceiver : BroadcastReceiver() {
                         magnetometerZ = sensorSnapshot.magnetometerZ
                     )
                 )
-                SettingsStore.getDefaultTagIds(context).forEach { tagId ->
+                settingsUseCase.getDefaultTagIds().forEach { tagId ->
                     repo.insertPointTag(pointId, tagId)
                 }
                 showToast(context, context.getString(R.string.toast_point_added))

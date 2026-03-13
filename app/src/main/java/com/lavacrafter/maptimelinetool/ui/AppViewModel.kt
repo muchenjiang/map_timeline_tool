@@ -14,6 +14,7 @@ import com.lavacrafter.maptimelinetool.data.TagEntity
 import com.lavacrafter.maptimelinetool.deletePointPhotoFile
 import com.lavacrafter.maptimelinetool.domain.repository.PointRepositoryGateway
 import com.lavacrafter.maptimelinetool.domain.usecase.PointWriteUseCase
+import com.lavacrafter.maptimelinetool.domain.usecase.TagManagementUseCase
 import com.lavacrafter.maptimelinetool.sensor.captureSensorSnapshot
 import com.lavacrafter.maptimelinetool.ui.HeadingLocationOverlay
 import kotlinx.coroutines.CancellationException
@@ -35,8 +36,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readSensorSnapshot = { captureSensorSnapshot(getApplication()) },
         deletePhoto = { photoPath -> deletePointPhotoOnIo(photoPath) }
     )
+    private val tagManagementUseCase = TagManagementUseCase(repo)
     val points = repo.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val tags = repo.observeTags().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val tags = tagManagementUseCase.observeTags().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private var autoAddJob: kotlinx.coroutines.Job? = null
     private val _autoAdded = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val autoAdded = _autoAdded
@@ -69,20 +71,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun addTag(name: String, onResult: (Long) -> Unit = {}) {
         viewModelScope.launch {
-            val id = repo.insertTag(TagEntity(name = name))
+            val id = tagManagementUseCase.addTag(name)
             onResult(id)
         }
     }
 
     fun renameTag(tag: TagEntity, name: String) {
         viewModelScope.launch {
-            repo.updateTag(tag.copy(name = name))
+            tagManagementUseCase.renameTag(tag, name)
         }
     }
 
     fun deleteTag(tagId: Long) {
         viewModelScope.launch {
-            repo.deleteTag(tagId)
+            tagManagementUseCase.deleteTag(tagId)
         }
     }
 
@@ -94,13 +96,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setTagForPoint(pointId: Long, tagId: Long, enabled: Boolean) {
         viewModelScope.launch {
-            if (enabled) repo.insertPointTag(pointId, tagId) else repo.deletePointTag(pointId, tagId)
+            tagManagementUseCase.setTagForPoint(pointId, tagId, enabled)
         }
     }
 
-    suspend fun getTagIdsForPoint(pointId: Long): List<Long> = repo.getTagIdsForPoint(pointId)
+    suspend fun getTagIdsForPoint(pointId: Long): List<Long> = tagManagementUseCase.getTagIdsForPoint(pointId)
 
-    fun observePointsForTag(tagId: Long) = repo.observePointsForTag(tagId)
+    fun observePointsForTag(tagId: Long) = tagManagementUseCase.observePointsForTag(tagId)
 
     fun getLastKnownLocation(): Location? {
         return com.lavacrafter.maptimelinetool.LocationUtils.getLastKnownLocation(getApplication())
