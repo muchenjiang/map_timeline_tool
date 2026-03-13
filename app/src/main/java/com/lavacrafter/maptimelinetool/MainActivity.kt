@@ -3,6 +3,7 @@ package com.lavacrafter.maptimelinetool
 import android.Manifest
 import android.content.Intent
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.BottomSheetScaffold
@@ -44,13 +47,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
 import com.lavacrafter.maptimelinetool.createPendingPointPhotoFile
 import com.lavacrafter.maptimelinetool.deletePointPhotoFile
+import com.lavacrafter.maptimelinetool.resolvePointPhotoFile
 import com.lavacrafter.maptimelinetool.toStoredPhotoPath
 import com.lavacrafter.maptimelinetool.export.CsvExporter
 import com.lavacrafter.maptimelinetool.ui.ExportSelection
@@ -125,6 +131,7 @@ class MainActivity : ComponentActivity() {
                 var newPointNote by remember { mutableStateOf("") }
                 var pendingAddPhotoPath by remember { mutableStateOf<String?>(null) }
                 var pendingAddPhotoUri by remember { mutableStateOf<Uri?>(null) }
+                var previewPhotoPath by remember { mutableStateOf<String?>(null) }
                 var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
                 var isCountdownPaused by remember { mutableStateOf(false) }
                 var lastTypingTime by remember { mutableStateOf<Long?>(null) }
@@ -651,6 +658,9 @@ class MainActivity : ComponentActivity() {
                             pendingAddPhotoUri = null
                             deletePhotoOnIo(oldPath)
                         },
+                        onViewPhoto = {
+                            previewPhotoPath = pendingAddPhotoPath
+                        },
                         onDismiss = {
                             clearPendingAddPhoto()
                             showDialog = false
@@ -761,6 +771,9 @@ class MainActivity : ComponentActivity() {
                             clearReplacedEditingPhoto()
                             editingPointPhotoPath = null
                         },
+                        onViewPhoto = {
+                            previewPhotoPath = editingPointPhotoPath
+                        },
                         onSave = { title, note, photoPath ->
                             viewModel.updatePoint(point, title, note, photoPath)
                             resetEditingPointState()
@@ -774,6 +787,13 @@ class MainActivity : ComponentActivity() {
                             clearUnsavedEditingPhoto()
                             resetEditingPointState()
                         }
+                    )
+                }
+
+                if (!previewPhotoPath.isNullOrBlank()) {
+                    PhotoPreviewDialog(
+                        photoPath = previewPhotoPath!!,
+                        onDismiss = { previewPhotoPath = null }
                     )
                 }
 
@@ -882,6 +902,37 @@ private fun vibrateOnce(context: Context) {
         @Suppress("DEPRECATION")
         vibrator.vibrate(50)
     }
+}
+
+@Composable
+private fun PhotoPreviewDialog(
+    photoPath: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val photoFile = remember(photoPath, context) { resolvePointPhotoFile(context, photoPath) }
+    val bitmap = remember(photoFile?.absolutePath) {
+        photoFile?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.absolutePath) }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) }
+        },
+        title = { Text(stringResource(R.string.action_view_photo)) },
+        text = {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = stringResource(R.string.action_view_photo),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text(stringResource(R.string.label_photo_not_added))
+            }
+        }
+    )
 }
 
 enum class NetworkStatus { WIFI, CELLULAR, NONE }

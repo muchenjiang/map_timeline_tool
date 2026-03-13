@@ -40,6 +40,7 @@ fun EditPointDialog(
     onTakePhoto: () -> Unit,
     onRetakePhoto: () -> Unit,
     onRemovePhoto: () -> Unit,
+    onViewPhoto: () -> Unit,
     onSave: (String, String, String?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
@@ -97,6 +98,9 @@ fun EditPointDialog(
                         }
                         OutlinedButton(onClick = onRemovePhoto) {
                             Text(stringResource(R.string.action_remove_photo))
+                        }
+                        OutlinedButton(onClick = onViewPhoto) {
+                            Text(stringResource(R.string.action_view_photo))
                         }
                     }
                 }

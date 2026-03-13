@@ -47,6 +47,7 @@ fun AddPointDialog(
     onTakePhoto: () -> Unit,
     onRetakePhoto: () -> Unit,
     onRemovePhoto: () -> Unit,
+    onViewPhoto: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, Set<Long>) -> Unit
 ) {
@@ -112,6 +113,9 @@ fun AddPointDialog(
                         }
                         OutlinedButton(onClick = onRemovePhoto) {
                             Text(stringResource(R.string.action_remove_photo))
+                        }
+                        OutlinedButton(onClick = onViewPhoto) {
+                            Text(stringResource(R.string.action_view_photo))
                         }
                     } else {
                         OutlinedButton(onClick = onTakePhoto) {

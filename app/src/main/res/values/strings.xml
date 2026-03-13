@@ -23,6 +23,7 @@
     <string name="action_take_photo">Take photo</string>
     <string name="action_retake_photo">Retake</string>
     <string name="action_remove_photo">Remove photo</string>
+    <string name="action_view_photo">View photo</string>
     <string name="action_add">Add</string>
     <string name="action_done">Done</string>
     <string name="action_add_point_to_tag">Add points</string>

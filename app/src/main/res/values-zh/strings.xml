@@ -23,6 +23,7 @@
     <string name="action_take_photo">拍照</string>
     <string name="action_retake_photo">重拍</string>
     <string name="action_remove_photo">移除照片</string>
+    <string name="action_view_photo">查看照片</string>
     <string name="action_add">新增</string>
     <string name="action_done">完成</string>
     <string name="action_add_point_to_tag">添加打点</string>
