@@ -13,6 +13,18 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 object ZipExporter {
+    data class ExportOptions(
+        val includePoints: Boolean = true,
+        val includeTags: Boolean = true,
+        val includeSensors: Boolean = true,
+        val includePhotos: Boolean = true
+    )
+
+    data class TagRecord(
+        val id: Long,
+        val name: String
+    )
+
     data class ExportStats(
         val pointCount: Int,
         val photoCount: Int
@@ -28,51 +40,104 @@ object ZipExporter {
     fun export(
         points: List<Point>,
         outputStream: OutputStream,
-        resolvePhotoFile: (String) -> File?
+        resolvePhotoFile: (String) -> File?,
+        options: ExportOptions = ExportOptions(),
+        tags: List<TagRecord> = emptyList(),
+        pointTagIdsByPointId: Map<Long, List<Long>> = emptyMap()
     ): ExportStats {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val photoEntries = mutableMapOf<String, File>()
         val pointPhotoMeta = points.map { point ->
-            buildPhotoMeta(point, resolvePhotoFile, photoEntries)
+            buildPhotoMeta(
+                point = point,
+                resolvePhotoFile = resolvePhotoFile,
+                photoEntries = photoEntries,
+                includePhotos = options.includePhotos
+            )
         }
 
         ZipOutputStream(outputStream.buffered()).use { zip ->
-            zip.putNextEntry(ZipEntry("points.csv"))
-            val writer = OutputStreamWriter(zip, Charsets.UTF_8)
-            CsvExporter.writeRow(writer, CsvExporter.headers)
-            points.forEachIndexed { index, point ->
-                val meta = pointPhotoMeta.getOrNull(index) ?: PointPhotoMeta()
-                CsvExporter.writeRow(
-                    writer,
-                    listOf(
-                        point.title,
-                        point.note,
-                        point.latitude.toString(),
-                        point.longitude.toString(),
-                        sdf.format(Date(point.timestamp)),
-                        point.pressureHpa?.toString().orEmpty(),
-                        point.ambientLightLux?.toString().orEmpty(),
-                        point.accelerometerX?.toString().orEmpty(),
-                        point.accelerometerY?.toString().orEmpty(),
-                        point.accelerometerZ?.toString().orEmpty(),
-                        point.gyroscopeX?.toString().orEmpty(),
-                        point.gyroscopeY?.toString().orEmpty(),
-                        point.gyroscopeZ?.toString().orEmpty(),
-                        point.magnetometerX?.toString().orEmpty(),
-                        point.magnetometerY?.toString().orEmpty(),
-                        point.magnetometerZ?.toString().orEmpty(),
-                        point.noiseDb?.toString().orEmpty(),
-                        meta.relPath.orEmpty(),
-                        meta.mime.orEmpty(),
-                        meta.sizeBytes?.toString().orEmpty(),
-                        meta.sha256.orEmpty()
+            if (options.includePoints) {
+                zip.putNextEntry(ZipEntry("points.csv"))
+                val writer = OutputStreamWriter(zip, Charsets.UTF_8)
+                CsvExporter.writeRow(writer, CsvExporter.headers)
+                points.forEachIndexed { index, point ->
+                    val meta = pointPhotoMeta.getOrNull(index) ?: PointPhotoMeta()
+                    val sensorPressure = point.pressureHpa?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorLight = point.ambientLightLux?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorAccelX = point.accelerometerX?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorAccelY = point.accelerometerY?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorAccelZ = point.accelerometerZ?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorGyroX = point.gyroscopeX?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorGyroY = point.gyroscopeY?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorGyroZ = point.gyroscopeZ?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorMagX = point.magnetometerX?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorMagY = point.magnetometerY?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorMagZ = point.magnetometerZ?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    val sensorNoise = point.noiseDb?.toString().orEmpty().takeIf { options.includeSensors }.orEmpty()
+                    CsvExporter.writeRow(
+                        writer,
+                        listOf(
+                            point.title,
+                            point.note,
+                            point.latitude.toString(),
+                            point.longitude.toString(),
+                            sdf.format(Date(point.timestamp)),
+                            sensorPressure,
+                            sensorLight,
+                            sensorAccelX,
+                            sensorAccelY,
+                            sensorAccelZ,
+                            sensorGyroX,
+                            sensorGyroY,
+                            sensorGyroZ,
+                            sensorMagX,
+                            sensorMagY,
+                            sensorMagZ,
+                            sensorNoise,
+                            meta.relPath.orEmpty(),
+                            meta.mime.orEmpty(),
+                            meta.sizeBytes?.toString().orEmpty(),
+                            meta.sha256.orEmpty()
+                        )
                     )
-                )
+                }
+                writer.flush()
+                zip.closeEntry()
             }
-            writer.flush()
-            zip.closeEntry()
+
+            if (options.includePoints && options.includeTags) {
+                val pointsWithIndex = points.withIndex().associate { (index, point) -> point.id to index }
+                val usedTagIds = pointTagIdsByPointId
+                    .filterKeys { pointsWithIndex.containsKey(it) }
+                    .values
+                    .flatten()
+                    .toSet()
+                val filteredTags = tags.filter { usedTagIds.contains(it.id) }
+
+                zip.putNextEntry(ZipEntry("tags.csv"))
+                val tagWriter = OutputStreamWriter(zip, Charsets.UTF_8)
+                CsvExporter.writeRow(tagWriter, listOf("tag_id", "name"))
+                filteredTags.forEach { tag ->
+                    CsvExporter.writeRow(tagWriter, listOf(tag.id.toString(), tag.name))
+                }
+                tagWriter.flush()
+                zip.closeEntry()
+
+                zip.putNextEntry(ZipEntry("point_tags.csv"))
+                val pointTagWriter = OutputStreamWriter(zip, Charsets.UTF_8)
+                CsvExporter.writeRow(pointTagWriter, listOf("point_index", "tag_id"))
+                points.forEachIndexed { pointIndex, point ->
+                    val tagIds = pointTagIdsByPointId[point.id].orEmpty()
+                    tagIds.filter { usedTagIds.contains(it) }.forEach { tagId ->
+                        CsvExporter.writeRow(pointTagWriter, listOf(pointIndex.toString(), tagId.toString()))
+                    }
+                }
+                pointTagWriter.flush()
+                zip.closeEntry()
+            }
 
             photoEntries.forEach { (relPath, file) ->
                 zip.putNextEntry(ZipEntry(relPath))
@@ -90,8 +155,10 @@ object ZipExporter {
     private fun buildPhotoMeta(
         point: Point,
         resolvePhotoFile: (String) -> File?,
-        photoEntries: MutableMap<String, File>
+        photoEntries: MutableMap<String, File>,
+        includePhotos: Boolean
     ): PointPhotoMeta {
+        if (!includePhotos) return PointPhotoMeta()
         val sourcePath = point.photoPath?.trim().orEmpty()
         if (sourcePath.isEmpty()) return PointPhotoMeta()
         val photoFile = resolvePhotoFile(sourcePath)

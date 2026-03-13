@@ -2,9 +2,9 @@
     <string name="app_name">地图时间线工具</string>
     <string name="action_add_point">打点</string>
     <string name="action_export_csv">导出 CSV</string>
-    <string name="action_export_zip">导出 ZIP（打点+照片）</string>
+    <string name="action_export_zip">导出 ZIP</string>
     <string name="action_import_csv">导入 CSV</string>
-    <string name="action_import_zip">导入 ZIP（打点+照片）</string>
+    <string name="action_import_zip">导入 ZIP</string>
     <string name="toast_import_success">成功导入 %1$d 个打点</string>
     <string name="toast_import_failed">导入失败</string>
     <string name="toast_export_success">成功导出 %1$d 个打点</string>
@@ -186,6 +186,11 @@
         <string name="export_start_date">开始日期</string>
         <string name="export_end_date">结束日期</string>
         <string name="export_time_hint">输入时间范围（占位）</string>
+        <string name="export_zip_options_title">选择 ZIP 导出内容</string>
+        <string name="export_zip_option_points">打点</string>
+        <string name="export_zip_option_tags">标签</string>
+        <string name="export_zip_option_sensors">传感器</string>
+        <string name="export_zip_option_photos">照片</string>
         <string name="open_source_androidx_license">AndroidX（Apache-2.0）— https://www.apache.org/licenses/LICENSE-2.0</string>
         <string name="open_source_compose_license">Jetpack Compose（Apache-2.0）— https://www.apache.org/licenses/LICENSE-2.0</string>
         <string name="open_source_material_license">Material Components（Apache-2.0）— https://www.apache.org/licenses/LICENSE-2.0</string>

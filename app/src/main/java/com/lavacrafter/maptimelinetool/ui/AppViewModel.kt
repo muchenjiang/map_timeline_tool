@@ -13,12 +13,15 @@ import com.lavacrafter.maptimelinetool.data.TagEntity
 import com.lavacrafter.maptimelinetool.AppGraph
 import com.lavacrafter.maptimelinetool.domain.model.GeoPoint
 import com.lavacrafter.maptimelinetool.domain.model.Point
+import com.lavacrafter.maptimelinetool.domain.model.Tag
 import com.lavacrafter.maptimelinetool.domain.port.LocationProvider
 import com.lavacrafter.maptimelinetool.domain.repository.PointRepositoryGateway
 import com.lavacrafter.maptimelinetool.domain.usecase.PointWriteUseCase
 import com.lavacrafter.maptimelinetool.domain.usecase.TagManagementUseCase
+import com.lavacrafter.maptimelinetool.export.ZipImporter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -89,6 +92,35 @@ class AppViewModel(
     fun importPoints(pointsList: List<Point>) {
         viewModelScope.launch {
             pointWriteUseCase.importPoints(pointsList)
+        }
+    }
+
+    suspend fun importZipData(importStats: ZipImporter.ImportStats) {
+        val pointIdByIndex = mutableMapOf<Int, Long>()
+        importStats.points.forEachIndexed { index, point ->
+            pointIdByIndex[index] = repo.insert(point.copy(id = 0))
+        }
+
+        if (importStats.tags.isEmpty() || importStats.pointTags.isEmpty()) return
+
+        val existingTags = repo.observeTags().first()
+        val existingTagByName = existingTags.associateBy { it.name.trim().lowercase(Locale.US) }.toMutableMap()
+        val legacyTagIdToActualId = mutableMapOf<Long, Long>()
+        importStats.tags.forEach { importedTag ->
+            val normalizedName = importedTag.name.trim().lowercase(Locale.US)
+            val actualId = existingTagByName[normalizedName]?.id ?: repo.insertTag(Tag(name = importedTag.name.trim()))
+            existingTagByName.putIfAbsent(normalizedName, Tag(id = actualId, name = importedTag.name.trim()))
+            legacyTagIdToActualId[importedTag.legacyId] = actualId
+        }
+
+        val insertedPairs = mutableSetOf<Pair<Long, Long>>()
+        importStats.pointTags.forEach { importedPointTag ->
+            val pointId = pointIdByIndex[importedPointTag.pointIndex] ?: return@forEach
+            val tagId = legacyTagIdToActualId[importedPointTag.legacyTagId] ?: return@forEach
+            val key = pointId to tagId
+            if (insertedPairs.add(key)) {
+                repo.insertPointTag(pointId, tagId)
+            }
         }
     }
 

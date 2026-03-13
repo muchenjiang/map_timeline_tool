@@ -3,11 +3,25 @@ package com.lavacrafter.maptimelinetool.export
 import com.lavacrafter.maptimelinetool.domain.model.Point
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.PushbackReader
+import java.util.Locale
 import java.util.zip.ZipInputStream
 
 object ZipImporter {
+    data class ImportedTag(
+        val legacyId: Long,
+        val name: String
+    )
+
+    data class ImportedPointTag(
+        val pointIndex: Int,
+        val legacyTagId: Long
+    )
+
     data class ImportStats(
         val points: List<Point>,
+        val tags: List<ImportedTag>,
+        val pointTags: List<ImportedPointTag>,
         val importedPhotoCount: Int,
         val missingPhotoCount: Int
     )
@@ -18,6 +32,8 @@ object ZipImporter {
     ): ImportStats {
         val photoMapping = mutableMapOf<String, String>()
         var points = emptyList<Point>()
+        var tags = emptyList<ImportedTag>()
+        var pointTags = emptyList<ImportedPointTag>()
         ZipInputStream(inputStream.buffered()).use { zip ->
             while (true) {
                 val entry = zip.nextEntry ?: break
@@ -32,6 +48,10 @@ object ZipImporter {
                 }
                 if (normalizedName.equals("points.csv", ignoreCase = true)) {
                     points = CsvImporter.parseCsv(InputStreamReader(zip, Charsets.UTF_8))
+                } else if (normalizedName.equals("tags.csv", ignoreCase = true)) {
+                    tags = parseTagsCsv(InputStreamReader(zip, Charsets.UTF_8))
+                } else if (normalizedName.equals("point_tags.csv", ignoreCase = true)) {
+                    pointTags = parsePointTagsCsv(InputStreamReader(zip, Charsets.UTF_8))
                 } else if (normalizedName.startsWith("photos/")) {
                     val storedPath = runCatching { savePhoto(normalizedName, zip) }.getOrNull()
                     if (!storedPath.isNullOrBlank()) {
@@ -57,6 +77,8 @@ object ZipImporter {
         }
         return ImportStats(
             points = resolvedPoints,
+            tags = tags,
+            pointTags = pointTags,
             importedPhotoCount = photoMapping.size,
             missingPhotoCount = missingPhotoCount
         )
@@ -74,5 +96,99 @@ object ZipImporter {
     private fun normalizePhotoRelPath(path: String): String {
         val normalized = path.trim().replace('\\', '/')
         return normalized.removePrefix("./")
+    }
+
+    private fun parseTagsCsv(reader: InputStreamReader): List<ImportedTag> {
+        val rows = parseCsvRows(reader)
+        if (rows.isEmpty()) return emptyList()
+        val header = rows.first().map { it.trim().lowercase(Locale.US) }
+        val idIndex = header.indexOf("tag_id").takeIf { it >= 0 } ?: header.indexOf("id").takeIf { it >= 0 } ?: return emptyList()
+        val nameIndex = header.indexOf("name").takeIf { it >= 0 } ?: return emptyList()
+        return rows.drop(1).mapNotNull { row ->
+            val legacyId = row.getOrNull(idIndex)?.trim()?.toLongOrNull() ?: return@mapNotNull null
+            val name = row.getOrNull(nameIndex)?.trim().orEmpty()
+            if (name.isEmpty()) return@mapNotNull null
+            ImportedTag(legacyId = legacyId, name = name)
+        }
+    }
+
+    private fun parsePointTagsCsv(reader: InputStreamReader): List<ImportedPointTag> {
+        val rows = parseCsvRows(reader)
+        if (rows.isEmpty()) return emptyList()
+        val header = rows.first().map { it.trim().lowercase(Locale.US) }
+        val pointIndex = header.indexOf("point_index").takeIf { it >= 0 } ?: return emptyList()
+        val tagIdIndex = header.indexOf("tag_id").takeIf { it >= 0 } ?: header.indexOf("id").takeIf { it >= 0 } ?: return emptyList()
+        return rows.drop(1).mapNotNull { row ->
+            val pointIdx = row.getOrNull(pointIndex)?.trim()?.toIntOrNull() ?: return@mapNotNull null
+            val tagId = row.getOrNull(tagIdIndex)?.trim()?.toLongOrNull() ?: return@mapNotNull null
+            ImportedPointTag(pointIndex = pointIdx, legacyTagId = tagId)
+        }
+    }
+
+    private fun parseCsvRows(reader: InputStreamReader): List<List<String>> {
+        val pushbackReader = PushbackReader(reader, 2)
+        val rows = mutableListOf<List<String>>()
+        while (true) {
+            val row = readCsvRecord(pushbackReader) ?: break
+            if (row.isNotEmpty()) rows.add(row)
+        }
+        return rows
+    }
+
+    private fun readCsvRecord(reader: PushbackReader): List<String>? {
+        val record = mutableListOf<String>()
+        val field = StringBuilder()
+        var inQuotes = false
+        var anyContent = false
+
+        while (true) {
+            val intChar = reader.read()
+            if (intChar == -1) {
+                if (!anyContent && field.isEmpty() && record.isEmpty()) {
+                    return null
+                }
+                record.add(field.toString())
+                return record
+            }
+
+            val currentChar = intChar.toChar()
+            if (!anyContent && currentChar == '\uFEFF') {
+                continue
+            }
+
+            anyContent = true
+            when {
+                currentChar == '"' -> {
+                    if (inQuotes) {
+                        val next = reader.read()
+                        if (next == '"'.code) {
+                            field.append('"')
+                        } else {
+                            inQuotes = false
+                            if (next != -1) reader.unread(next)
+                        }
+                    } else {
+                        inQuotes = true
+                    }
+                }
+                currentChar == ',' && !inQuotes -> {
+                    record.add(field.toString())
+                    field.clear()
+                }
+                currentChar == '\n' && !inQuotes -> {
+                    record.add(field.toString())
+                    return record
+                }
+                currentChar == '\r' && !inQuotes -> {
+                    val next = reader.read()
+                    if (next != '\n'.code && next != -1) {
+                        reader.unread(next)
+                    }
+                    record.add(field.toString())
+                    return record
+                }
+                else -> field.append(currentChar)
+            }
+        }
     }
 }
