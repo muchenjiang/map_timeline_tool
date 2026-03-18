@@ -17,11 +17,18 @@ class SettingsViewModel(
     app: Application,
     private val settingsUseCase: SettingsManagementUseCase
 ) : AndroidViewModel(app) {
+    private val initialMapTileSourceId: String = settingsUseCase.getMapTileSourceId()
+        .takeIf { sourceId -> mapTileSources.any { it.id == sourceId } }
+        ?: mapTileSources.first().id.also { fallbackId ->
+            settingsUseCase.setMapTileSourceId(fallbackId)
+        }
+
     private val _uiState = MutableStateFlow(
         SettingsUiState(
             followSystemTheme = settingsUseCase.getFollowSystemTheme(),
             timeoutSeconds = settingsUseCase.getTimeoutSeconds(),
             cachePolicy = settingsUseCase.getCachePolicy().toUi(),
+            satelliteCachePolicy = settingsUseCase.getSatelliteCachePolicy().toUi(),
             pinnedTagIds = settingsUseCase.getPinnedTagIds().toSet(),
             recentTagIds = settingsUseCase.getRecentTagIds(),
             zoomBehavior = settingsUseCase.getZoomButtonBehavior().toUi(),
@@ -39,7 +46,8 @@ class SettingsViewModel(
             accelerometerEnabled = settingsUseCase.getAccelerometerEnabled(),
             gyroscopeEnabled = settingsUseCase.getGyroscopeEnabled(),
             magnetometerEnabled = settingsUseCase.getMagnetometerEnabled(),
-            noiseEnabled = settingsUseCase.getNoiseEnabled()
+            noiseEnabled = settingsUseCase.getNoiseEnabled(),
+            mapTileSourceId = initialMapTileSourceId
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -61,6 +69,11 @@ class SettingsViewModel(
     fun setCachePolicy(policy: MapCachePolicy) {
         settingsUseCase.setCachePolicy(policy.toDomain())
         _uiState.update { it.copy(cachePolicy = policy) }
+    }
+
+    fun setSatelliteCachePolicy(policy: MapCachePolicy) {
+        settingsUseCase.setSatelliteCachePolicy(policy.toDomain())
+        _uiState.update { it.copy(satelliteCachePolicy = policy) }
     }
 
     fun setDownloadTileSourceId(sourceId: String) {
@@ -124,7 +137,10 @@ class SettingsViewModel(
     }
 
     fun setMapTileSourceId(sourceId: String) {
-        _uiState.update { it.copy(mapTileSourceId = sourceId) }
+        val validSourceId = sourceId.takeIf { id -> mapTileSources.any { it.id == id } }
+            ?: mapTileSources.first().id
+        settingsUseCase.setMapTileSourceId(validSourceId)
+        _uiState.update { it.copy(mapTileSourceId = validSourceId) }
     }
 
     fun setZoomBehavior(behavior: ZoomButtonBehavior) {

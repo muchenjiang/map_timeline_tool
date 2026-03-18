@@ -16,6 +16,9 @@ class SettingsManagementUseCase(
     fun getCachePolicy(): SettingsMapCachePolicy = settingsGateway.getCachePolicy()
     fun setCachePolicy(policy: SettingsMapCachePolicy) = settingsGateway.setCachePolicy(policy)
 
+    fun getSatelliteCachePolicy(): SettingsMapCachePolicy = settingsGateway.getSatelliteCachePolicy()
+    fun setSatelliteCachePolicy(policy: SettingsMapCachePolicy) = settingsGateway.setSatelliteCachePolicy(policy)
+
     fun getPinnedTagIds(): List<Long> = settingsGateway.getPinnedTagIds()
     fun setPinnedTagIds(tagIds: List<Long>) = settingsGateway.setPinnedTagIds(tagIds)
 
@@ -35,6 +38,9 @@ class SettingsManagementUseCase(
 
     fun getMarkerScale(): Float = settingsGateway.getMarkerScale()
     fun setMarkerScale(scale: Float) = settingsGateway.setMarkerScale(scale)
+
+    fun getMapTileSourceId(): String = settingsGateway.getMapTileSourceId()
+    fun setMapTileSourceId(sourceId: String) = settingsGateway.setMapTileSourceId(sourceId)
 
     fun getDownloadTileSourceId(): String = settingsGateway.getDownloadTileSourceId()
     fun setDownloadTileSourceId(sourceId: String) = settingsGateway.setDownloadTileSourceId(sourceId)

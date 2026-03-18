@@ -38,7 +38,6 @@ import com.lavacrafter.maptimelinetool.data.PointEntity
 import kotlinx.coroutines.delay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.events.MapListener
@@ -61,7 +60,9 @@ fun MapScreen(
     isActive: Boolean,
     zoomBehavior: ZoomButtonBehavior,
     markerScale: Float,
-    downloadedOnly: Boolean
+    downloadedOnly: Boolean,
+    mapTileSourceId: String,
+    onMapTileSourceChange: (String) -> Unit
 ) {
     val context = LocalContext.current
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
@@ -153,7 +154,7 @@ fun MapScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    setTileSource(TileSourceFactory.MAPNIK)
+                    setTileSource(mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext))
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
                     setUseDataConnection(!downloadedOnly)
@@ -177,6 +178,10 @@ fun MapScreen(
                 }
             },
             update = { map ->
+                val targetSource = mapTileSourceById(mapTileSourceId).toOsmdroidSource(context)
+                if (map.tileProvider.tileSource.name() != targetSource.name()) {
+                    map.setTileSource(targetSource)
+                }
                 map.setUseDataConnection(!downloadedOnly)
                 val signature = points.map { it.id }
                 if (overlaysReady && signature == lastOverlaySignature) {
@@ -264,11 +269,29 @@ fun MapScreen(
             ZoomButtonBehavior.WHEN_ACTIVE -> isActive && showZoomTransient
             ZoomButtonBehavior.ALWAYS -> true
         }
+
+        FloatingActionButton(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .size(44.dp),
+            onClick = {
+                if (mapTileSources.isEmpty()) return@FloatingActionButton
+                val currentIndex = mapTileSources.indexOfFirst { it.id == mapTileSourceId }
+                    .takeIf { it >= 0 }
+                    ?: 0
+                val nextIndex = (currentIndex + 1) % mapTileSources.size
+                onMapTileSourceChange(mapTileSources[nextIndex].id)
+            }
+        ) {
+            Text(stringResource(R.string.action_cycle_map_layer))
+        }
+
         if (shouldShowZoom) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp),
+                    .padding(top = 68.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FloatingActionButton(

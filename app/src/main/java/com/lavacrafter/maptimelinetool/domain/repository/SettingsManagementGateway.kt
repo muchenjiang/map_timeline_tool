@@ -13,6 +13,9 @@ interface SettingsManagementGateway {
     fun getCachePolicy(): SettingsMapCachePolicy
     fun setCachePolicy(policy: SettingsMapCachePolicy)
 
+    fun getSatelliteCachePolicy(): SettingsMapCachePolicy
+    fun setSatelliteCachePolicy(policy: SettingsMapCachePolicy)
+
     fun getPinnedTagIds(): List<Long>
     fun setPinnedTagIds(tagIds: List<Long>)
 
@@ -32,6 +35,9 @@ interface SettingsManagementGateway {
 
     fun getMarkerScale(): Float
     fun setMarkerScale(scale: Float)
+
+    fun getMapTileSourceId(): String
+    fun setMapTileSourceId(sourceId: String)
 
     fun getDownloadTileSourceId(): String
     fun setDownloadTileSourceId(sourceId: String)
