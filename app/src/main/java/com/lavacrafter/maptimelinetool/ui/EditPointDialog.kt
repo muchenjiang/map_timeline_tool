@@ -62,6 +62,7 @@ fun EditPointDialog(
         val file = resolvePointPhotoFile(context, currentPhotoPath)
         file?.takeIf { it.exists() && it.isFile }?.length()?.let(::formatPhotoFileSize)
     }
+    val readableSummary = remember(point) { point.toReadableSensorSummary() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -146,6 +147,45 @@ fun EditPointDialog(
                                 Text(tag.name)
                             }
                         }
+                    }
+                }
+                val hasReadableSummary =
+                    readableSummary.altitudeMeters != null ||
+                        readableSummary.ambientLightLevel != null ||
+                        readableSummary.azimuthDegrees != null ||
+                        readableSummary.pitchDegrees != null
+                if (hasReadableSummary) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.label_sensor_readable),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    readableSummary.altitudeMeters?.let { altitude ->
+                        Text(stringResource(R.string.label_sensor_altitude, altitude))
+                    }
+                    readableSummary.ambientLightLevel?.let { level ->
+                        val levelText = when (level) {
+                            AmbientLightLevel.HIGH -> stringResource(R.string.label_sensor_light_level_high)
+                            AmbientLightLevel.MEDIUM -> stringResource(R.string.label_sensor_light_level_medium)
+                            AmbientLightLevel.LOW -> stringResource(R.string.label_sensor_light_level_low)
+                        }
+                        Text(stringResource(R.string.label_sensor_light_level, levelText))
+                    }
+                    readableSummary.azimuthDegrees?.let { azimuth ->
+                        Text(stringResource(R.string.label_sensor_azimuth, azimuth))
+                    }
+                    readableSummary.pitchDegrees?.let { pitch ->
+                        Text(stringResource(R.string.label_sensor_pitch, pitch))
+                    }
+                    if (readableSummary.azimuthDegrees != null && readableSummary.pitchDegrees != null) {
+                        Text(
+                            stringResource(
+                                R.string.label_sensor_view_direction,
+                                readableSummary.azimuthDegrees,
+                                readableSummary.pitchDegrees
+                            )
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
