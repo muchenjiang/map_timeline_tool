@@ -319,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                     startService(Intent(context, QuickAddService::class.java))
                 }
 
-                LaunchedEffect(settingsState.cachePolicy, settingsState.satelliteCachePolicy, settingsState.mapTileSourceId) {
+                LaunchedEffect(settingsState.cachePolicy, settingsState.satelliteCachePolicy, settingsState.mapTileSourceId, networkStatus) {
                     applyMapCachePolicy(context, settingsState.mapTileSourceId)
                 }
 
@@ -593,7 +593,11 @@ class MainActivity : AppCompatActivity() {
                                 isActive = tab == 0,
                                 zoomBehavior = settingsState.zoomBehavior,
                                 markerScale = settingsState.markerScale,
-                                downloadedOnly = settingsState.downloadedAreas.isNotEmpty(),
+                                downloadedOnly = settingsState.downloadedAreas.isNotEmpty() || run {
+                                    val isSatellite = settingsState.mapTileSourceId == "eox_sentinel2_cloudless_2024"
+                                    val policy = if (isSatellite) settingsState.satelliteCachePolicy else settingsState.cachePolicy
+                                    policy == MapCachePolicy.DISABLED || (policy == MapCachePolicy.WIFI_ONLY && networkStatus != NetworkStatus.WIFI)
+                                },
                                 mapTileSourceId = settingsState.mapTileSourceId,
                                 onMapTileSourceChange = settingsViewModel::setMapTileSourceId,
                                 scaffoldState = scaffoldState
@@ -1205,16 +1209,30 @@ fun observeNetworkStatus(context: Context): androidx.compose.runtime.State<Netwo
                 state.value = when {
                     networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
                     networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
-                    else -> NetworkStatus.NONE
-                }
-            }
-        }
-        connectivityManager.registerDefaultNetworkCallback(callback)
-        onDispose {
-            runCatching { connectivityManager.unregisterNetworkCallback(callback) }
-        }
+                      networkCapabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) -> resolveVpnNetworkStatus(connectivityManager)
+                      else -> NetworkStatus.NONE
+                  }
+              }
+          }
+          connectivityManager.registerDefaultNetworkCallback(callback)
+          onDispose {
+              runCatching { connectivityManager.unregisterNetworkCallback(callback) }
+          }
+      }
+      return state
+}
+
+private fun resolveVpnNetworkStatus(cm: android.net.ConnectivityManager): NetworkStatus {
+    val underlying = cm.allNetworks.find {
+        val c = cm.getNetworkCapabilities(it)
+        c != null && !c.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) && c.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
-    return state
+    if (underlying != null) {
+        val c = cm.getNetworkCapabilities(underlying)
+        if (c?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true) return NetworkStatus.WIFI
+        if (c?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true) return NetworkStatus.CELLULAR
+    }
+    return NetworkStatus.CELLULAR
 }
 
 private fun getNetworkStatus(context: Context): NetworkStatus {
@@ -1224,6 +1242,7 @@ private fun getNetworkStatus(context: Context): NetworkStatus {
     return when {
         caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> NetworkStatus.WIFI
         caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkStatus.CELLULAR
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) -> resolveVpnNetworkStatus(connectivityManager)
         else -> NetworkStatus.NONE
     }
 }
