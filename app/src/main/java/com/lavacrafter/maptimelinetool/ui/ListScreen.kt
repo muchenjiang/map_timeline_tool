@@ -36,7 +36,8 @@ fun ListScreen(
     val todayOrderById = remember(points) { buildTodayOrder(points) }
     val timeFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
     val calendar = remember { Calendar.getInstance() }
-    val today = Calendar.getInstance()
+    val today = remember { Calendar.getInstance() }
+    today.timeInMillis = System.currentTimeMillis()
     val todayYear = today.get(Calendar.YEAR)
     val todayDay = today.get(Calendar.DAY_OF_YEAR)
     LazyColumn(modifier = modifier.fillMaxSize().padding(8.dp)) {
