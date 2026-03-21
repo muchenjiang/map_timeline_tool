@@ -230,14 +230,15 @@ fun MapScreen(
                             azimuthDegrees = lookDirection.azimuthDegrees,
                             pitchDegrees = lookDirection.pitchDegrees
                         )
+                        val sectorPoints = sector.map { (lat, lon) -> GeoPoint(lat, lon) }
                         val polygon = Polygon().apply {
-                            points = sector.map { (lat, lon) -> GeoPoint(lat, lon) }
                             fillPaint.color = Color.argb(48, Color.red(color), Color.green(color), Color.blue(color))
                             outlinePaint.color = Color.argb(180, Color.red(color), Color.green(color), Color.blue(color))
                             outlinePaint.strokeWidth = 2f
                             title = context.getString(R.string.label_map_view_sector)
                             snippet = lookDescription.orEmpty()
                         }
+                        polygon.setPoints(sectorPoints)
                         map.overlays.add(polygon)
                     }
                     if (p.id == selectedPointId) {

@@ -12,9 +12,17 @@ internal enum class AmbientLightLevel {
     HIGH
 }
 
+internal enum class NoiseLevel {
+    QUIET,
+    RELATIVELY_QUIET,
+    NOISY,
+    EXTREMELY_NOISY
+}
+
 internal data class ReadableSensorSummary(
     val altitudeMeters: Float?,
     val ambientLightLevel: AmbientLightLevel?,
+    val noiseLevel: NoiseLevel?,
     val azimuthDegrees: Float?,
     val pitchDegrees: Float?
 )
@@ -27,15 +35,21 @@ internal data class LookDirection(
 internal fun PointEntity.toReadableSensorSummary(): ReadableSensorSummary {
     val altitude = pressureHpa?.let(::pressureToAltitudeMeters)
     val lightLevel = ambientLightLux?.let(::toAmbientLightLevel)
+    val noise = noiseDb?.let(::toNoiseLevel)
     val azimuth = if (magnetometerX != null && magnetometerY != null) {
         magnetometerToAzimuthDegrees(magnetometerX, magnetometerY)
     } else {
         null
     }
-    val pitch = gyroscopeX?.let(::gyroscopeRateToPitchDegrees)
+    val pitch = if (accelerometerY != null && accelerometerZ != null) {
+        accelerometerToPitchDegrees(accelerometerY, accelerometerZ)
+    } else {
+        null
+    }
     return ReadableSensorSummary(
         altitudeMeters = altitude,
         ambientLightLevel = lightLevel,
+        noiseLevel = noise,
         azimuthDegrees = azimuth,
         pitchDegrees = pitch
     )
@@ -66,13 +80,26 @@ internal fun toAmbientLightLevel(lux: Float): AmbientLightLevel =
         else -> AmbientLightLevel.HIGH
     }
 
+internal fun toNoiseLevel(dbfs: Float): NoiseLevel =
+    when {
+        dbfs < -50f -> NoiseLevel.QUIET
+        dbfs < -35f -> NoiseLevel.RELATIVELY_QUIET
+        dbfs < -20f -> NoiseLevel.NOISY
+        else -> NoiseLevel.EXTREMELY_NOISY
+    }
+
 internal fun magnetometerToAzimuthDegrees(x: Float, y: Float): Float {
     val deg = Math.toDegrees(atan2(y.toDouble(), x.toDouble())).toFloat()
     return (deg + 360f) % 360f
 }
 
-internal fun gyroscopeRateToPitchDegrees(rateRadPerSec: Float): Float =
-    Math.toDegrees((rateRadPerSec * GYROSCOPE_SNAPSHOT_WINDOW_SECONDS).toDouble()).toFloat().coerceIn(-89f, 89f)
+internal fun accelerometerToPitchDegrees(y: Float, z: Float): Float {
+    // Android coordinate system: Y is up towards top of screen, Z is out of screen towards user.
+    // When device is flat on table: z ~= 9.8, y ~= 0 (pitch = 0).
+    // When device is vertical (portrait): y ~= 9.8, z ~= 0 (pitch = 90).
+    // pitch = atan2(y, z).
+    return Math.toDegrees(atan2(y.toDouble(), z.toDouble())).toFloat().coerceIn(-89f, 89f)
+}
 
 internal fun estimateViewDistanceMeters(pitchDegrees: Float): Double {
     val normalized = ((pitchDegrees + PITCH_MIN_DEGREES) / PITCH_RANGE_DEGREES).coerceIn(0f, 1f)
