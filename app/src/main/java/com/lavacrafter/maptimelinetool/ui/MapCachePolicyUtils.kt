@@ -10,21 +10,10 @@ private const val SATELLITE_CACHE_BYTES = 1024L * 1024L * 1024L
 
 fun applyMapCachePolicy(context: Context, mapTileSourceId: String) {
     val isSatellite = mapTileSourceId == "eox_sentinel2_cloudless_2024"
-    val policy = if (isSatellite) {
-        SettingsStore.getSatelliteCachePolicy(context)
-    } else {
-        SettingsStore.getCachePolicy(context)
-    }
-
     val config = Configuration.getInstance()
-    val allowCache = when (policy) {
-        MapCachePolicy.DISABLED -> false
-        MapCachePolicy.ALWAYS -> true
-        MapCachePolicy.WIFI_ONLY -> isOnWifi(context)
-    }
-    val maxBytes = if (allowCache) {
-        if (isSatellite) SATELLITE_CACHE_BYTES else DEFAULT_CACHE_BYTES
-    } else 0L
+    // Do not set maxBytes to 0L here, because 0L will cause the SqlTileWriter to continuously delete ALL previously cached tiles!
+    // The network traffic restriction is handled by map.setUseDataConnection(!downloadedOnly) instead.
+    val maxBytes = if (isSatellite) SATELLITE_CACHE_BYTES else DEFAULT_CACHE_BYTES
     config.tileFileSystemCacheMaxBytes = maxBytes
 }
 
@@ -32,5 +21,18 @@ private fun isOnWifi(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val network = cm.activeNetwork ?: return false
     val caps = cm.getNetworkCapabilities(network) ?: return false
-    return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return true
+    if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+        val underlying = cm.allNetworks.find {
+            val c = cm.getNetworkCapabilities(it)
+            c != null && !c.hasTransport(NetworkCapabilities.TRANSPORT_VPN) && c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }
+        if (underlying != null) {
+            val c = cm.getNetworkCapabilities(underlying)
+            if (c?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) return true
+            if (c?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true) return false
+        }
+        return false
+    }
+    return false
 }

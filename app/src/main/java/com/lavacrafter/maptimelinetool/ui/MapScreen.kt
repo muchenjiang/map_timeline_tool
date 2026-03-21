@@ -155,10 +155,11 @@ fun MapScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    setUseDataConnection(!downloadedOnly)
+                    tileProvider.setUseDataConnection(!downloadedOnly)
                     setTileSource(mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext))
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
-                    setUseDataConnection(!downloadedOnly)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
@@ -175,15 +176,21 @@ fun MapScreen(
                             return false
                         }
                     })
+                    onResume()
                     mapView = this
                 }
             },
+            onRelease = { map ->
+                map.onPause()
+                map.onDetach()
+            },
             update = { map ->
                 val targetSource = mapTileSourceById(mapTileSourceId).toOsmdroidSource(context)
+                map.setUseDataConnection(!downloadedOnly)
+                map.tileProvider.setUseDataConnection(!downloadedOnly)
                 if (map.tileProvider.tileSource.name() != targetSource.name()) {
                     map.setTileSource(targetSource)
                 }
-                map.setUseDataConnection(!downloadedOnly)
                 val signature = points.map { it.id }
                 if (overlaysReady && signature == lastOverlaySignature) {
                     map.invalidate()
@@ -228,24 +235,6 @@ fun MapScreen(
                         }
                     }
                     map.overlays.add(marker)
-                    if (lookDirection != null) {
-                        val sector = buildViewSector(
-                            latitude = p.latitude,
-                            longitude = p.longitude,
-                            azimuthDegrees = lookDirection.azimuthDegrees,
-                            pitchDegrees = lookDirection.pitchDegrees
-                        )
-                        val sectorPoints = sector.map { (lat, lon) -> GeoPoint(lat, lon) }
-                        val polygon = Polygon().apply {
-                            fillPaint.color = Color.argb(48, Color.red(color), Color.green(color), Color.blue(color))
-                            outlinePaint.color = Color.argb(180, Color.red(color), Color.green(color), Color.blue(color))
-                            outlinePaint.strokeWidth = 2f
-                            title = context.getString(R.string.label_map_view_sector)
-                            snippet = lookDescription.orEmpty()
-                        }
-                        polygon.setPoints(sectorPoints)
-                        map.overlays.add(polygon)
-                    }
                     if (p.id == selectedPointId) {
                         marker.showInfoWindow()
                     }
