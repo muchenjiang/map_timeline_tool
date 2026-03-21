@@ -92,7 +92,9 @@
     <string name="settings_cache_desc">Choose a tile source and cache policy for the map.</string>
     <string name="settings_help_cache">Select the upstream tile source and how aggressively the app keeps tiles. Clearing the cache removes tiles not part of downloaded areas.</string>
     <string name="settings_cache_source_label">Cache tile source</string>
-    <string name="settings_cache_policy_label">Map cache policy</string>
+    <string name="settings_cache_source_notice">EOX Sentinel-2 Cloudless is for non-commercial use only (BY-NC-SA).</string>
+    <string name="settings_cache_policy_label">Street map cache policy</string>
+    <string name="settings_satellite_cache_policy_label">Satellite map cache policy</string>
     <string name="settings_cache_policy_disabled">Do not cache new maps</string>
     <string name="settings_cache_policy_wifi">Cache only on Wi-Fi</string>
     <string name="settings_cache_policy_always">Always cache maps</string>
@@ -109,8 +111,11 @@
     <string name="settings_experimental_label">(experimental)</string>
     <string name="tile_source_mapnik">OpenStreetMap Mapnik</string>
     <string name="tile_source_wikimedia">Wikimedia Maps</string>
+    <string name="tile_source_eox_sentinel2_cloudless_2024">EOX Sentinel-2 Cloudless 2024</string>
     <string name="tile_source_attribution_openstreetmap">© OpenStreetMap contributors</string>
     <string name="tile_source_attribution_wikimedia">Wikimedia maps | Map data © OpenStreetMap contributors</string>
+    <string name="tile_source_attribution_eox_sentinel2_cloudless">Sentinel-2 cloudless 2024 by EOX (modified Copernicus Sentinel data), CC BY-NC-SA 4.0.</string>
+    <string name="action_cycle_map_layer">Layer</string>
     <string name="settings_project_label">Project</string>
     <string name="settings_project_url">github.com/muchenjiang/map_timeline_tool</string>
     <string name="settings_open_source_title">Open-source projects</string>

@@ -319,8 +319,8 @@ class MainActivity : ComponentActivity() {
                     startService(Intent(context, QuickAddService::class.java))
                 }
 
-                LaunchedEffect(settingsState.cachePolicy) {
-                    applyMapCachePolicy(context, settingsState.cachePolicy)
+                LaunchedEffect(settingsState.cachePolicy, settingsState.satelliteCachePolicy, settingsState.mapTileSourceId) {
+                    applyMapCachePolicy(context, settingsState.mapTileSourceId)
                 }
 
 
@@ -594,6 +594,8 @@ class MainActivity : ComponentActivity() {
                                 zoomBehavior = settingsState.zoomBehavior,
                                 markerScale = settingsState.markerScale,
                                 downloadedOnly = settingsState.downloadedAreas.isNotEmpty(),
+                                mapTileSourceId = settingsState.mapTileSourceId,
+                                onMapTileSourceChange = settingsViewModel::setMapTileSourceId,
                                 scaffoldState = scaffoldState
                             )
                             1 -> {
@@ -652,6 +654,8 @@ class MainActivity : ComponentActivity() {
                                     onTimeoutSecondsChange = settingsViewModel::setTimeoutSeconds,
                                     cachePolicy = settingsState.cachePolicy,
                                     onCachePolicyChange = settingsViewModel::setCachePolicy,
+                                    satelliteCachePolicy = settingsState.satelliteCachePolicy,
+                                    onSatelliteCachePolicyChange = settingsViewModel::setSatelliteCachePolicy,
                                     networkStatus = networkStatus,
                                     selectedDownloadTileSourceId = settingsState.downloadTileSourceId,
                                     onDownloadTileSourceChange = settingsViewModel::setDownloadTileSourceId,
@@ -1093,6 +1097,8 @@ private fun MapWithListSheet(
     zoomBehavior: ZoomButtonBehavior,
     markerScale: Float,
     downloadedOnly: Boolean,
+    mapTileSourceId: String,
+    onMapTileSourceChange: (String) -> Unit,
     scaffoldState: BottomSheetScaffoldState
 ) {
     BottomSheetScaffold(
@@ -1118,7 +1124,9 @@ private fun MapWithListSheet(
                 isActive = isActive,
                 zoomBehavior = zoomBehavior,
                 markerScale = markerScale,
-                downloadedOnly = downloadedOnly
+                downloadedOnly = downloadedOnly,
+                mapTileSourceId = mapTileSourceId,
+                onMapTileSourceChange = onMapTileSourceChange
             )
         }
     }

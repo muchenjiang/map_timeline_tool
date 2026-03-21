@@ -6,15 +6,25 @@ import android.net.NetworkCapabilities
 import org.osmdroid.config.Configuration
 
 private const val DEFAULT_CACHE_BYTES = 50L * 1024L * 1024L
+private const val SATELLITE_CACHE_BYTES = 1024L * 1024L * 1024L
 
-fun applyMapCachePolicy(context: Context, policy: MapCachePolicy) {
+fun applyMapCachePolicy(context: Context, mapTileSourceId: String) {
+    val isSatellite = mapTileSourceId == "eox_sentinel2_cloudless_2024"
+    val policy = if (isSatellite) {
+        SettingsStore.getSatelliteCachePolicy(context)
+    } else {
+        SettingsStore.getCachePolicy(context)
+    }
+
     val config = Configuration.getInstance()
     val allowCache = when (policy) {
         MapCachePolicy.DISABLED -> false
         MapCachePolicy.ALWAYS -> true
         MapCachePolicy.WIFI_ONLY -> isOnWifi(context)
     }
-    val maxBytes = if (allowCache) DEFAULT_CACHE_BYTES else 0L
+    val maxBytes = if (allowCache) {
+        if (isSatellite) SATELLITE_CACHE_BYTES else DEFAULT_CACHE_BYTES
+    } else 0L
     config.tileFileSystemCacheMaxBytes = maxBytes
 }
 

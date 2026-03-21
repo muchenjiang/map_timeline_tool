@@ -60,6 +60,8 @@ fun SettingsScreen(
     onTimeoutSecondsChange: (Int) -> Unit,
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
+    satelliteCachePolicy: MapCachePolicy,
+    onSatelliteCachePolicyChange: (MapCachePolicy) -> Unit,
     networkStatus: NetworkStatus,
     selectedDownloadTileSourceId: String,
     onDownloadTileSourceChange: (String) -> Unit,
@@ -161,6 +163,8 @@ fun SettingsScreen(
         SettingsRoute.Cache -> CacheSettings(
             cachePolicy = cachePolicy,
             onCachePolicyChange = onCachePolicyChange,
+            satelliteCachePolicy = satelliteCachePolicy,
+            onSatelliteCachePolicyChange = onSatelliteCachePolicyChange,
             networkStatus = networkStatus,
             mapTileSourceId = mapTileSourceId,
             onMapTileSourceChange = onMapTileSourceChange,
@@ -549,6 +553,8 @@ private fun SensorToggleRow(
 private fun CacheSettings(
     cachePolicy: MapCachePolicy,
     onCachePolicyChange: (MapCachePolicy) -> Unit,
+    satelliteCachePolicy: MapCachePolicy,
+    onSatelliteCachePolicyChange: (MapCachePolicy) -> Unit,
     networkStatus: NetworkStatus,
     mapTileSourceId: String,
     onMapTileSourceChange: (String) -> Unit,
@@ -568,6 +574,10 @@ private fun CacheSettings(
                 },
                 selectedValue = mapTileSourceId,
                 onSelect = onMapTileSourceChange
+            )
+            Text(
+                text = stringResource(R.string.settings_cache_source_notice),
+                style = MaterialTheme.typography.bodySmall
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -590,6 +600,19 @@ private fun CacheSettings(
                     ),
                     selectedValue = cachePolicy,
                     onSelect = onCachePolicyChange
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                SelectionGroup(
+                    title = stringResource(R.string.settings_satellite_cache_policy_label),
+                    options = listOf(
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_disabled), value = MapCachePolicy.DISABLED),
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_wifi), value = MapCachePolicy.WIFI_ONLY),
+                        SelectionItem(label = stringResource(R.string.settings_cache_policy_always), value = MapCachePolicy.ALWAYS)
+                    ),
+                    selectedValue = satelliteCachePolicy,
+                    onSelect = onSatelliteCachePolicyChange
                 )
             }
 

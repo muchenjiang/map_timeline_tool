@@ -5,6 +5,7 @@ data class SettingsUiState(
     val followSystemTheme: Boolean = true,
     val timeoutSeconds: Int = 20,
     val cachePolicy: MapCachePolicy = MapCachePolicy.WIFI_ONLY,
+    val satelliteCachePolicy: MapCachePolicy = MapCachePolicy.WIFI_ONLY,
     val pinnedTagIds: Set<Long> = emptySet(),
     val recentTagIds: List<Long> = emptyList(),
     val zoomBehavior: ZoomButtonBehavior = ZoomButtonBehavior.HIDE,

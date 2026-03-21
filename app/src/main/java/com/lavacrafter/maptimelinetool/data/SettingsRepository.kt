@@ -18,6 +18,9 @@ class SettingsRepository(context: Context) : SettingsManagementGateway {
     override fun getCachePolicy(): SettingsMapCachePolicy = SettingsStore.getCachePolicy(appContext).toDomain()
     override fun setCachePolicy(policy: SettingsMapCachePolicy) = SettingsStore.setCachePolicy(appContext, policy.toUi())
 
+    override fun getSatelliteCachePolicy(): SettingsMapCachePolicy = SettingsStore.getSatelliteCachePolicy(appContext).toDomain()
+    override fun setSatelliteCachePolicy(policy: SettingsMapCachePolicy) = SettingsStore.setSatelliteCachePolicy(appContext, policy.toUi())
+
     override fun getPinnedTagIds(): List<Long> = SettingsStore.getPinnedTagIds(appContext)
     override fun setPinnedTagIds(tagIds: List<Long>) = SettingsStore.setPinnedTagIds(appContext, tagIds)
 
@@ -38,6 +41,9 @@ class SettingsRepository(context: Context) : SettingsManagementGateway {
 
     override fun getMarkerScale(): Float = SettingsStore.getMarkerScale(appContext)
     override fun setMarkerScale(scale: Float) = SettingsStore.setMarkerScale(appContext, scale)
+
+    override fun getMapTileSourceId(): String = SettingsStore.getMapTileSourceId(appContext)
+    override fun setMapTileSourceId(sourceId: String) = SettingsStore.setMapTileSourceId(appContext, sourceId)
 
     override fun getDownloadTileSourceId(): String = SettingsStore.getDownloadTileSourceId(appContext)
     override fun setDownloadTileSourceId(sourceId: String) = SettingsStore.setDownloadTileSourceId(appContext, sourceId)

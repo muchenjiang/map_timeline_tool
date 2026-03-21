@@ -6,6 +6,7 @@ object SettingsStore {
     private const val PREFS = "map_timeline_settings"
     private const val KEY_TIMEOUT = "timeout_seconds"
     private const val KEY_CACHE_POLICY = "cache_policy"
+    private const val KEY_SATELLITE_CACHE_POLICY = "satellite_cache_policy"
     private const val KEY_PINNED_TAGS = "pinned_tags"
     private const val KEY_RECENT_TAGS = "recent_tags"
     private const val KEY_ZOOM_BEHAVIOR = "zoom_behavior"
@@ -13,6 +14,7 @@ object SettingsStore {
     private const val KEY_FOLLOW_SYSTEM_THEME = "follow_system_theme"
     private const val KEY_DEFAULT_TAGS = "default_tags"
     private const val KEY_MARKER_SCALE = "marker_scale"
+    private const val KEY_MAP_TILE_SOURCE = "map_tile_source"
     private const val KEY_DOWNLOADED_AREAS = "downloaded_areas"
     private const val KEY_DOWNLOAD_TILE_SOURCE = "download_tile_source"
     private const val KEY_DOWNLOAD_MULTI_THREAD = "download_multi_thread"
@@ -50,6 +52,19 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt(KEY_CACHE_POLICY, policy.value)
+            .apply()
+    }
+
+    fun getSatelliteCachePolicy(context: Context): MapCachePolicy {
+        val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getInt(KEY_SATELLITE_CACHE_POLICY, MapCachePolicy.WIFI_ONLY.value)
+        return MapCachePolicy.fromValue(value)
+    }
+
+    fun setSatelliteCachePolicy(context: Context, policy: MapCachePolicy) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_SATELLITE_CACHE_POLICY, policy.value)
             .apply()
     }
 
@@ -131,6 +146,19 @@ object SettingsStore {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putFloat(KEY_MARKER_SCALE, scale.coerceIn(0.3f, 1.75f))
+            .apply()
+    }
+
+    fun getMapTileSourceId(context: Context): String {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_MAP_TILE_SOURCE, mapTileSources.first().id)
+            ?: mapTileSources.first().id
+    }
+
+    fun setMapTileSourceId(context: Context, sourceId: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_MAP_TILE_SOURCE, sourceId)
             .apply()
     }
 
