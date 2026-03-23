@@ -5,6 +5,7 @@
     <string name="action_export_zip">Export ZIP</string>
     <string name="action_import_csv">Import CSV</string>
     <string name="action_import_zip">Import ZIP</string>
+    <string name="action_share_backup_zip">Share Full Backup ZIP</string>
     <string name="toast_import_success">Imported %1$d points</string>
     <string name="toast_import_failed">Import failed</string>
     <string name="toast_export_success">Exported %1$d points</string>
@@ -74,7 +75,7 @@
     <string name="label_photo_size">Photo size: %1$s</string>
     <string name="settings_title">Settings</string>
     <string name="settings_help_title">Help</string>
-    <string name="settings_help_overview">Tap the cards below to reach the panels for themes, map controls, photo compression, cache, downloads, and default tags. Each screen has a ? button for quick tips.</string>
+    <string name="settings_help_overview">Tap the cards below to reach the panels for themes, backup and restore, map controls, photo compression, cache, downloads, and default tags. Each screen has a ? button for quick tips.</string>
     <string name="settings_theme_label">Dark theme</string>
     <string name="settings_theme_follow_system">Follow system</string>
     <string name="settings_theme_follow_system_hint">Follow system — controls dark theme</string>
@@ -134,6 +135,9 @@
     <string name="settings_about">About</string>
     <string name="settings_default_tags_title">Default Tags</string>
     <string name="settings_default_tags_desc">Tags automatically added to new points</string>
+    <string name="settings_backup_restore_title">Backup and Restore</string>
+    <string name="settings_backup_restore_desc">Import or export data, and share full backup ZIP</string>
+    <string name="settings_help_backup_restore">Use this page to import/export CSV or ZIP. You can also package a full ZIP backup locally and open the system share sheet to send it to other apps or cloud drives.</string>
     <string name="settings_language_label">Language</string>
     <string name="settings_language_follow_system">System default</string>
     <string name="settings_language_english">English</string>

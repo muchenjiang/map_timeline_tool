@@ -101,6 +101,7 @@ fun SettingsScreen(
     onOpenMapDownload: () -> Unit,
     onExportCsv: () -> Unit,
     onExportZip: () -> Unit,
+    onShareBackupZip: () -> Unit,
     onImportCsv: () -> Unit,
     onImportZip: () -> Unit,
     onClearCache: () -> Unit,
@@ -123,12 +124,16 @@ fun SettingsScreen(
             onFollowSystemThemeChange = onFollowSystemThemeChange,
             languagePreference = languagePreference,
             onNavigateTo = onNavigateTo,
-            onExportCsv = onExportCsv,
-            onExportZip = onExportZip,
-            onImportCsv = onImportCsv,
-            onImportZip = onImportZip,
             onClearCache = onClearCache,
             onOpenAbout = onOpenAbout
+        )
+        SettingsRoute.BackupRestore -> BackupRestoreSettings(
+            onExportCsv = onExportCsv,
+            onExportZip = onExportZip,
+            onShareBackupZip = onShareBackupZip,
+            onImportCsv = onImportCsv,
+            onImportZip = onImportZip,
+            onBack = onNavigateBack
         )
         SettingsRoute.Language -> LanguageSettings(
             languagePreference = languagePreference,
@@ -209,10 +214,6 @@ private fun SettingsOverviewScreen(
     onFollowSystemThemeChange: (Boolean) -> Unit,
     languagePreference: LanguagePreference,
     onNavigateTo: (SettingsRoute) -> Unit,
-    onExportCsv: () -> Unit,
-    onExportZip: () -> Unit,
-    onImportCsv: () -> Unit,
-    onImportZip: () -> Unit,
     onClearCache: () -> Unit,
     onOpenAbout: () -> Unit
 ) {
@@ -293,19 +294,11 @@ private fun SettingsOverviewScreen(
                 description = stringResource(R.string.settings_default_tags_desc),
                 onClick = { onNavigateTo(SettingsRoute.DefaultTags) }
             )
-
-            Button(onClick = onExportCsv, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_export_csv))
-            }
-            Button(onClick = onExportZip, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_export_zip))
-            }
-            Button(onClick = onImportCsv, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_import_csv))
-            }
-            Button(onClick = onImportZip, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_import_zip))
-            }
+            SettingsOverviewItem(
+                title = stringResource(R.string.settings_backup_restore_title),
+                description = stringResource(R.string.settings_backup_restore_desc),
+                onClick = { onNavigateTo(SettingsRoute.BackupRestore) }
+            )
             OutlinedButton(onClick = onClearCache, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.action_clear_cache))
             }
@@ -326,6 +319,40 @@ private fun SettingsOverviewScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun BackupRestoreSettings(
+    onExportCsv: () -> Unit,
+    onExportZip: () -> Unit,
+    onShareBackupZip: () -> Unit,
+    onImportCsv: () -> Unit,
+    onImportZip: () -> Unit,
+    onBack: () -> Unit
+) {
+    SettingsSubpageScaffold(
+        title = stringResource(R.string.settings_backup_restore_title),
+        tutorialText = stringResource(R.string.settings_help_backup_restore),
+        onBack = onBack
+    ) { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onExportCsv, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_export_csv))
+            }
+            Button(onClick = onExportZip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_export_zip))
+            }
+            Button(onClick = onShareBackupZip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_share_backup_zip))
+            }
+            Button(onClick = onImportCsv, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_import_csv))
+            }
+            Button(onClick = onImportZip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_import_zip))
+            }
+        }
     }
 }
 
