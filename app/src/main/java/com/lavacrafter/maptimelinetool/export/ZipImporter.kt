@@ -23,7 +23,8 @@ object ZipImporter {
         val tags: List<ImportedTag>,
         val pointTags: List<ImportedPointTag>,
         val importedPhotoCount: Int,
-        val missingPhotoCount: Int
+        val missingPhotoCount: Int,
+        val settingsJson: String? = null
     )
 
     fun importZip(
@@ -34,6 +35,7 @@ object ZipImporter {
         var points = emptyList<Point>()
         var tags = emptyList<ImportedTag>()
         var pointTags = emptyList<ImportedPointTag>()
+        var settingsJson: String? = null
         ZipInputStream(inputStream.buffered()).use { zip ->
             while (true) {
                 val entry = zip.nextEntry ?: break
@@ -57,6 +59,8 @@ object ZipImporter {
                     if (!storedPath.isNullOrBlank()) {
                         photoMapping[normalizePhotoRelPath(normalizedName)] = storedPath
                     }
+                } else if (normalizedName.equals("settings.json", ignoreCase = true)) {
+                    settingsJson = runCatching { zip.readBytes().toString(Charsets.UTF_8) }.getOrNull()
                 }
                 zip.closeEntry()
             }
@@ -80,7 +84,8 @@ object ZipImporter {
             tags = tags,
             pointTags = pointTags,
             importedPhotoCount = photoMapping.size,
-            missingPhotoCount = missingPhotoCount
+            missingPhotoCount = missingPhotoCount,
+            settingsJson = settingsJson
         )
     }
 

@@ -53,6 +53,40 @@ class SettingsViewModel(
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    fun reloadFromStore() {
+        val validMapTileSourceId = settingsUseCase.getMapTileSourceId()
+            .takeIf { sourceId -> mapTileSources.any { it.id == sourceId } }
+            ?: mapTileSources.first().id.also { fallbackId ->
+                settingsUseCase.setMapTileSourceId(fallbackId)
+            }
+        _uiState.value = SettingsUiState(
+            followSystemTheme = settingsUseCase.getFollowSystemTheme(),
+            languagePreference = settingsUseCase.getLanguagePreference().toUi(),
+            timeoutSeconds = settingsUseCase.getTimeoutSeconds(),
+            cachePolicy = settingsUseCase.getCachePolicy().toUi(),
+            satelliteCachePolicy = settingsUseCase.getSatelliteCachePolicy().toUi(),
+            pinnedTagIds = settingsUseCase.getPinnedTagIds().toSet(),
+            recentTagIds = settingsUseCase.getRecentTagIds(),
+            zoomBehavior = settingsUseCase.getZoomButtonBehavior().toUi(),
+            markerScale = settingsUseCase.getMarkerScale(),
+            defaultTagIds = settingsUseCase.getDefaultTagIds().toSet(),
+            downloadedAreas = settingsUseCase.getDownloadedAreas().map { it.toUi() },
+            downloadTileSourceId = settingsUseCase.getDownloadTileSourceId(),
+            downloadMultiThreadEnabled = settingsUseCase.getDownloadMultiThreadEnabled(),
+            downloadThreadCount = settingsUseCase.getDownloadThreadCount(),
+            photoLosslessEnabled = settingsUseCase.getPhotoLosslessEnabled(),
+            photoCompressFormat = settingsUseCase.getPhotoCompressFormat().toUi(),
+            photoCompressQuality = settingsUseCase.getPhotoCompressQuality(),
+            pressureEnabled = settingsUseCase.getPressureEnabled(),
+            ambientLightEnabled = settingsUseCase.getAmbientLightEnabled(),
+            accelerometerEnabled = settingsUseCase.getAccelerometerEnabled(),
+            gyroscopeEnabled = settingsUseCase.getGyroscopeEnabled(),
+            magnetometerEnabled = settingsUseCase.getMagnetometerEnabled(),
+            noiseEnabled = settingsUseCase.getNoiseEnabled(),
+            mapTileSourceId = validMapTileSourceId
+        )
+    }
+
     fun setDarkTheme(enabled: Boolean) {
         _uiState.update { it.copy(isDarkTheme = enabled) }
     }

@@ -88,6 +88,7 @@ import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsRoute
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.SettingsViewModel
 import com.lavacrafter.maptimelinetool.ui.downloadTileSourceById
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
@@ -233,7 +234,9 @@ class MainActivity : AppCompatActivity() {
                                         },
                                         options = pending.zipOptions,
                                         tags = pending.zipTags,
-                                        pointTagIdsByPointId = pending.pointTagIdsByPointId
+                                        pointTagIdsByPointId = pending.pointTagIdsByPointId,
+                                        settingsJsonProvider = { SettingsStore.exportBackupJson(context) },
+                                        appVersion = packageManager.getPackageInfo(packageName, 0).versionName
                                     )
                                 } ?: throw IOException("Failed to open output stream")
                             }
@@ -276,9 +279,16 @@ class MainActivity : AppCompatActivity() {
                                             toStoredPhotoPath(importedPhotoFile)
                                         }.getOrNull()
                                     }
-                                } ?: ZipImporter.ImportStats(emptyList(), emptyList(), emptyList(), 0, 0)
+                                } ?: ZipImporter.ImportStats(emptyList(), emptyList(), emptyList(), 0, 0, null)
                             }
                             viewModel.importZipData(imported)
+                            imported.settingsJson?.let { json ->
+                                val restored = SettingsStore.importBackupJson(context, json)
+                                if (restored) {
+                                    settingsViewModel.reloadFromStore()
+                                    applyLanguagePreference(settingsViewModel.uiState.value.languagePreference)
+                                }
+                            }
                             Toast.makeText(context, context.getString(R.string.toast_import_success, imported.points.size), Toast.LENGTH_SHORT).show()
                         }.onFailure {
                             Toast.makeText(context, context.getString(R.string.toast_import_failed), Toast.LENGTH_SHORT).show()
