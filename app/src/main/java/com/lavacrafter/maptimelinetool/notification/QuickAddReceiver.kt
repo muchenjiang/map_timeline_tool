@@ -79,6 +79,7 @@ private fun showAddNotification(context: Context) {
         .setContentTitle(context.getString(R.string.toast_point_added))
         .setContentText(context.getString(R.string.toast_point_added))
         .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setAutoCancel(true)
         .setTimeoutAfter(2000L)
         .build()

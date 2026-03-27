@@ -85,6 +85,7 @@ class QuickAddService : Service() {
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .setSilent(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
 
