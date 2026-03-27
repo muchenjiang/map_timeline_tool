@@ -81,6 +81,7 @@ fun MapDownloadScreen(
         onDispose {
             try {
                 cacheManagerRef?.cancelAllJobs()
+                cacheManagerRef = null
                 Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
             } catch (_: Exception) {
             }
@@ -236,6 +237,7 @@ fun MapDownloadScreen(
                             cacheManager.downloadAreaAsync(context, bbox, minZoom, maxZoom, object : CacheManager.CacheManagerCallback {
                                 override fun downloadStarted() {
                                     mainHandler.post {
+                                        if (cacheManagerRef !== cacheManager) return@post
                                         isDownloading = true
                                         statusText = context.getString(R.string.map_download_status_running)
                                     }
@@ -243,12 +245,14 @@ fun MapDownloadScreen(
 
                                 override fun setPossibleTilesInArea(total: Int) {
                                     mainHandler.post {
+                                        if (cacheManagerRef !== cacheManager) return@post
                                         statusText = context.getString(R.string.map_download_status_running_detail, 0, minZoom)
                                     }
                                 }
 
                                 override fun onTaskComplete() {
                                     mainHandler.post {
+                                        if (cacheManagerRef !== cacheManager) return@post
                                         isDownloading = false
                                         statusText = context.getString(R.string.map_download_status_done)
                                         Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
@@ -267,6 +271,7 @@ fun MapDownloadScreen(
 
                                 override fun onTaskFailed(errors: Int) {
                                     mainHandler.post {
+                                        if (cacheManagerRef !== cacheManager) return@post
                                         isDownloading = false
                                         statusText = context.getString(R.string.map_download_status_failed, errors)
                                         Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
@@ -275,6 +280,7 @@ fun MapDownloadScreen(
 
                                 override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
                                     mainHandler.post {
+                                        if (cacheManagerRef !== cacheManager) return@post
                                         statusText = context.getString(
                                             R.string.map_download_status_running_detail,
                                             progress,
@@ -304,6 +310,7 @@ fun MapDownloadScreen(
                     onClick = {
                         try {
                             cacheManagerRef?.cancelAllJobs()
+                            cacheManagerRef = null
                         } catch (e: Exception) {
                             // Ignore missing method or other errors
                         }
