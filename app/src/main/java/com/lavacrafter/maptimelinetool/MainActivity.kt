@@ -88,6 +88,7 @@ import com.lavacrafter.maptimelinetool.ui.TagListScreen
 import com.lavacrafter.maptimelinetool.ui.TagSelectionDialog
 import com.lavacrafter.maptimelinetool.ui.SettingsRoute
 import com.lavacrafter.maptimelinetool.ui.SettingsScreen
+import com.lavacrafter.maptimelinetool.ui.SettingsStore
 import com.lavacrafter.maptimelinetool.ui.SettingsViewModel
 import com.lavacrafter.maptimelinetool.ui.downloadTileSourceById
 import com.lavacrafter.maptimelinetool.ui.ZoomButtonBehavior
@@ -233,7 +234,9 @@ class MainActivity : AppCompatActivity() {
                                         },
                                         options = pending.zipOptions,
                                         tags = pending.zipTags,
-                                        pointTagIdsByPointId = pending.pointTagIdsByPointId
+                                        pointTagIdsByPointId = pending.pointTagIdsByPointId,
+                                        settingsJsonProvider = { SettingsStore.exportBackupJson(context) },
+                                        appVersion = packageManager.getPackageInfo(packageName, 0).versionName
                                     )
                                 } ?: throw IOException("Failed to open output stream")
                             }
@@ -276,9 +279,16 @@ class MainActivity : AppCompatActivity() {
                                             toStoredPhotoPath(importedPhotoFile)
                                         }.getOrNull()
                                     }
-                                } ?: ZipImporter.ImportStats(emptyList(), emptyList(), emptyList(), 0, 0)
+                                } ?: ZipImporter.ImportStats(emptyList(), emptyList(), emptyList(), 0, 0, null)
                             }
                             viewModel.importZipData(imported)
+                            imported.settingsJson?.let { json ->
+                                val restored = SettingsStore.importBackupJson(context, json)
+                                if (restored) {
+                                    settingsViewModel.reloadFromStore()
+                                    applyLanguagePreference(settingsViewModel.uiState.value.languagePreference)
+                                }
+                            }
                             Toast.makeText(context, context.getString(R.string.toast_import_success, imported.points.size), Toast.LENGTH_SHORT).show()
                         }.onFailure {
                             Toast.makeText(context, context.getString(R.string.toast_import_failed), Toast.LENGTH_SHORT).show()
@@ -529,6 +539,64 @@ class MainActivity : AppCompatActivity() {
                     zipIncludePhotos = true
                     showZipExportOptions = true
                 }
+                val shareBackupZip: () -> Unit = {
+                    scope.launch {
+                        runCatching {
+                            val totalPointCount = pointsState.size
+                            val shareUri = withContext(Dispatchers.IO) {
+                                val allPointsDomain = pointsState.map { it.toDomain() }
+                                val pointTagMap = mutableMapOf<Long, List<Long>>()
+                                allPointsDomain.forEach { point ->
+                                    val tagIds = viewModel.getTagIdsForPoint(point.id)
+                                    if (tagIds.isNotEmpty()) {
+                                        pointTagMap[point.id] = tagIds
+                                    }
+                                }
+                                val usedTagIds = pointTagMap.values.flatten().toSet()
+                                val zipTags = tagsState
+                                    .filter { usedTagIds.contains(it.id) }
+                                    .map { ZipExporter.TagRecord(it.id, it.name) }
+                                val backupDir = java.io.File(context.filesDir, "shared_backups").apply { mkdirs() }
+                                val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                                val backupZip = java.io.File(backupDir, "map_timeline_backup_${sdf.format(java.util.Date())}.zip")
+                                backupZip.outputStream().buffered().use { output ->
+                                    ZipExporter.export(
+                                        points = allPointsDomain,
+                                        outputStream = output,
+                                        resolvePhotoFile = { photoPath ->
+                                            resolvePointPhotoFile(context, photoPath)
+                                        },
+                                        options = ZipExporter.ExportOptions(
+                                            includePoints = true,
+                                            includeTags = true,
+                                            includeSensors = true,
+                                            includePhotos = true
+                                        ),
+                                        tags = zipTags,
+                                        pointTagIdsByPointId = pointTagMap,
+                                        settingsJsonProvider = { SettingsStore.exportBackupJson(context) },
+                                        appVersion = packageManager.getPackageInfo(packageName, 0).versionName
+                                    )
+                                }
+                                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", backupZip)
+                            }
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/zip"
+                                putExtra(Intent.EXTRA_STREAM, shareUri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(
+                                Intent.createChooser(
+                                    shareIntent,
+                                    context.getString(R.string.action_share_backup_zip)
+                                )
+                            )
+                            Toast.makeText(context, context.getString(R.string.toast_export_success, totalPointCount), Toast.LENGTH_SHORT).show()
+                        }.onFailure {
+                            Toast.makeText(context, context.getString(R.string.toast_export_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
 
                 Scaffold(
                     topBar = {
@@ -712,6 +780,7 @@ class MainActivity : AppCompatActivity() {
                                     onDeduplicateDownloadedAreas = settingsViewModel::dedupeDownloadedAreas,
                                     onExportCsv = exportCsv,
                                     onExportZip = exportZip,
+                                    onShareBackupZip = shareBackupZip,
                                     onImportCsv = { importCsvLauncher.launch("text/*") },
                                     onImportZip = { importZipLauncher.launch("application/zip") },
                                     onClearCache = {
