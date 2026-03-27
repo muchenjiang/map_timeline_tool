@@ -833,7 +833,7 @@ class MainActivity : AppCompatActivity() {
                                 isActive = tab == 0,
                                 zoomBehavior = settingsState.zoomBehavior,
                                 markerScale = settingsState.markerScale,
-                                downloadedOnly = settingsState.downloadedAreas.isNotEmpty() || run {
+                                downloadedOnly = run {
                                     val isSatellite = settingsState.mapTileSourceId == "eox_sentinel2_cloudless_2024"
                                     val policy = if (isSatellite) settingsState.satelliteCachePolicy else settingsState.cachePolicy
                                     policy == MapCachePolicy.DISABLED || (policy == MapCachePolicy.WIFI_ONLY && networkStatus != NetworkStatus.WIFI)
