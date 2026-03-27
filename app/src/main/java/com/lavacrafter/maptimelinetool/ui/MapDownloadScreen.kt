@@ -155,6 +155,10 @@ fun MapDownloadScreen(
                             setBuiltInZoomControls(false)
                             setUseDataConnection(true)
                             controller.setZoom(12.0)
+                            setOnTouchListener { v, _ ->
+                                v.parent?.requestDisallowInterceptTouchEvent(true)
+                                false
+                            }
                             mapView = this
                         }
                     },
