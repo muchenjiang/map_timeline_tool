@@ -89,6 +89,25 @@ fun MapDownloadScreen(
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                mapView?.onResume()
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                mapView?.onPause()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    BackHandler {
+        onBack()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -282,29 +301,6 @@ fun MapDownloadScreen(
                 ) {
                     Text(text = stringResource(R.string.map_download_start))
                 }
-                    // no manual reset button: automatically restore state when resuming or exiting
-                    val lifecycleOwner = LocalLifecycleOwner.current
-                    DisposableEffect(lifecycleOwner) {
-                        val observer = LifecycleEventObserver { _, event ->
-                            if (event == Lifecycle.Event.ON_RESUME) {
-                                try {
-                                    Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
-                                } catch (_: Exception) {
-                                }
-                                isDownloading = false
-                                statusText = context.getString(R.string.map_download_status_idle)
-                            }
-                        }
-                        lifecycleOwner.lifecycle.addObserver(observer)
-                        onDispose {
-                            lifecycleOwner.lifecycle.removeObserver(observer)
-                        }
-                    }
-
-                    BackHandler {
-                        // navigate back to parent screen
-                        onBack()
-                    }
             }
 
             if (isDownloading) {
