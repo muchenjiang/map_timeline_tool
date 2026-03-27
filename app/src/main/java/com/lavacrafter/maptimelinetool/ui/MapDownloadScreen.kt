@@ -81,6 +81,7 @@ fun MapDownloadScreen(
     DisposableEffect(Unit) {
         onDispose {
             try {
+                cacheManagerRef?.cancelAllJobs()
                 Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
             } catch (_: Exception) {
             }
@@ -306,6 +307,21 @@ fun MapDownloadScreen(
             if (isDownloading) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = statusText)
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = {
+                        try {
+                            cacheManagerRef?.cancelAllJobs()
+                        } catch (e: Exception) {
+                            // Ignore missing method or other errors
+                        }
+                        isDownloading = false
+                        statusText = context.getString(R.string.map_download_status_idle)
+                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                    }
+                ) {
+                    Text(text = stringResource(R.string.action_cancel))
+                }
             } else {
                 Text(text = statusText)
             }
