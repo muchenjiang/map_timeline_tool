@@ -1,7 +1,38 @@
+import java.io.File
+import java.util.Properties
+
+val signingPropertiesFile = File(System.getProperty("user.home"), ".android/release-signing.properties")
+val signingProperties = Properties().apply {
+    if (signingPropertiesFile.isFile) {
+        signingPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun signingValue(name: String, envName: String): String? {
+    return signingProperties.getProperty(name)
+        ?: providers.gradleProperty(name).orNull
+        ?: System.getenv(envName)
+}
+
+val releaseStoreFile = File(
+    signingProperties.getProperty(
+        "storeFile",
+        File(System.getProperty("user.home"), ".android/my-release-key.jks").absolutePath
+    )
+)
+val releaseStorePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
+val releaseKeyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
+val releaseSigningReady = releaseStoreFile.isFile &&
+    !releaseStorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
+    id("com.google.android.gms.oss-licenses-plugin")
 }
 
 android {
@@ -39,6 +70,21 @@ android {
 
     buildTypes {
         release {
+            check(releaseSigningReady) {
+                "Release signing is not configured. Create ~/.android/release-signing.properties with storePassword, keyAlias, and keyPassword, or set RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD. The keystore defaults to ~/.android/my-release-key.jks."
+            }
+
+            val resolvedReleaseStorePassword = requireNotNull(releaseStorePassword)
+            val resolvedReleaseKeyAlias = requireNotNull(releaseKeyAlias)
+            val resolvedReleaseKeyPassword = requireNotNull(releaseKeyPassword)
+
+            signingConfig = signingConfigs.create("release").apply {
+                storeFile = releaseStoreFile
+                storePassword = resolvedReleaseStorePassword
+                keyAlias = resolvedReleaseKeyAlias
+                keyPassword = resolvedReleaseKeyPassword
+            }
+
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -67,6 +113,8 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    
+    implementation("com.google.android.gms:play-services-oss-licenses:17.1.0")
 
     testImplementation("junit:junit:4.13.2")
 }

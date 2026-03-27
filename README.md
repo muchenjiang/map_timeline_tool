@@ -28,6 +28,17 @@ Current app version: **0.1.5**
 - Map tiles come from OpenStreetMap; only tiles need network access.
 - Location and data stay on your device.
 
+## Release signing
+- The release keystore is read from `~/.android/my-release-key.jks` on both Linux and Windows, using the current user's home directory.
+- Create `~/.android/release-signing.properties` with these keys:
+	- `storePassword=...`
+	- `keyAlias=...`
+	- `keyPassword=...`
+- You can also override them with Gradle properties or environment variables:
+	- `RELEASE_STORE_PASSWORD`
+	- `RELEASE_KEY_ALIAS`
+	- `RELEASE_KEY_PASSWORD`
+
 ## Architecture
 - UI state is managed in `AppViewModel`.
 - Point write operations are separated into `domain/usecase/PointWriteUseCase`.
