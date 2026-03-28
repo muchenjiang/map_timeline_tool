@@ -146,6 +146,7 @@ fun MapScreen(
 
     var lastOverlaySignature by remember { mutableStateOf<List<Long>>(emptyList()) }
     var overlaysReady by remember { mutableStateOf(false) }
+    var hasAutoCentered by remember { mutableStateOf(false) }
 
     Box {
         AndroidView(
@@ -191,6 +192,21 @@ fun MapScreen(
                 if (map.tileProvider.tileSource.name() != targetSource.name()) {
                     map.setTileSource(targetSource)
                 }
+
+                if (!hasAutoCentered) {
+                    if (points.isNotEmpty()) {
+                        val last = points.first()
+                        map.controller.setZoom(16.0)
+                        map.controller.setCenter(GeoPoint(last.latitude, last.longitude))
+                        hasAutoCentered = true
+                    } else if (headingOverlay.location != null) {
+                        val loc = headingOverlay.location!!
+                        map.controller.setZoom(16.0)
+                        map.controller.setCenter(GeoPoint(loc.latitude, loc.longitude))
+                        hasAutoCentered = true
+                    }
+                }
+
                 val signature = points.map { it.id }
                 if (overlaysReady && signature == lastOverlaySignature) {
                     map.invalidate()
