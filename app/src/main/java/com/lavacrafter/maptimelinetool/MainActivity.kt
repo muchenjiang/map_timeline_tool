@@ -106,6 +106,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.modules.SqlTileWriter
 
 private suspend fun buildPointTagNameMap(
     viewModel: AppViewModel,
@@ -976,6 +977,10 @@ class MainActivity : AppCompatActivity() {
                                                 }
                                             }.distinctBy { it.absolutePath }
 
+                                            val purgedByWriter = runCatching {
+                                                SqlTileWriter().purgeCache()
+                                            }.getOrDefault(false)
+
                                             val deleted = runCatching {
                                                 cacheDirs.all { dir ->
                                                     if (!dir.exists()) true else dir.deleteRecursively()
@@ -990,7 +995,7 @@ class MainActivity : AppCompatActivity() {
                                                 false
                                             }
 
-                                            val messageRes = if (deleted && recreated) {
+                                            val messageRes = if (purgedByWriter && deleted && recreated) {
                                                 R.string.toast_cache_cleared
                                             } else {
                                                 R.string.toast_cache_clear_failed
