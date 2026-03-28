@@ -162,9 +162,11 @@ fun MapScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    setTileSource(mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext))
+                    // setUseDataConnection must be applied after setTileSource, otherwise the
+                    // provider created by setTileSource may reset network behavior.
                     setUseDataConnection(!downloadedOnly)
                     tileProvider.setUseDataConnection(!downloadedOnly)
-                    setTileSource(mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext))
                     setMultiTouchControls(true)
                     setBuiltInZoomControls(false)
                     controller.setZoom(16.0)

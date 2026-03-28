@@ -40,6 +40,7 @@
     <string name="export_chooser_title">Export CSV</string>
     <string name="toast_export_failed">Export failed</string>
     <string name="toast_cache_cleared">Map cache cleared</string>
+    <string name="toast_cache_clear_failed">Failed to clear map cache. Please try again after reopening the app.</string>
     <string name="toast_cache_skip_downloaded">Downloaded areas preserved. Remove them before clearing cache.</string>
     <string name="toast_point_added">Point added</string>
     <string name="toast_noise_permission_denied">Microphone permission denied. Noise capture remains off.</string>

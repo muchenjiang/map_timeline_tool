@@ -967,9 +967,35 @@ class MainActivity : AppCompatActivity() {
                                         if (settingsState.downloadedAreas.isNotEmpty()) {
                                             Toast.makeText(context, context.getString(R.string.toast_cache_skip_downloaded), Toast.LENGTH_SHORT).show()
                                         } else {
-                                            val cacheDir = Configuration.getInstance().osmdroidTileCache
-                                            runCatching { cacheDir?.deleteRecursively() }
-                                            Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                            val config = Configuration.getInstance()
+                                            val cacheDirs = buildList {
+                                                config.osmdroidTileCache?.let { add(it) }
+                                                config.osmdroidBasePath?.let { basePath ->
+                                                    val legacyTilesDir = java.io.File(basePath, "tiles")
+                                                    add(legacyTilesDir)
+                                                }
+                                            }.distinctBy { it.absolutePath }
+
+                                            val deleted = runCatching {
+                                                cacheDirs.all { dir ->
+                                                    if (!dir.exists()) true else dir.deleteRecursively()
+                                                }
+                                            }.getOrDefault(false)
+
+                                            val recreated = if (deleted) {
+                                                runCatching {
+                                                    cacheDirs.all { dir -> dir.mkdirs() || dir.exists() }
+                                                }.getOrDefault(false)
+                                            } else {
+                                                false
+                                            }
+
+                                            val messageRes = if (deleted && recreated) {
+                                                R.string.toast_cache_cleared
+                                            } else {
+                                                R.string.toast_cache_clear_failed
+                                            }
+                                            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
                                         }
                                     },
                                     onOpenAbout = { showAbout = true },
