@@ -227,6 +227,11 @@
     <string name="map_download_status_failed">Download failed (%1$d errors)</string>
     <string name="map_download_view_selected">Selected current view</string>
     <string name="toast_map_not_ready">Map is not ready yet</string>
+    <string name="map_download_cancel_title">Pause Download</string>
+    <string name="map_download_cancel_message">The download is not finished yet. What do you want to do?</string>
+    <string name="map_download_cancel_abandon">Abort &amp; Discard</string>
+    <string name="map_download_cancel_keep">Stop &amp; Save</string>
+    <string name="map_download_cancel_resume">Continue Downloading</string>
     <string name="map_download_help_title">How to download</string>
     <string name="map_download_help_body">1) Pan/zoom the map to the area you want.\n2) Tap “Use current view” to lock the area.\n3) Set min/max zoom levels.\n4) Tap Download to start.\nDownloaded tiles are used on the map page and new tiles won’t be fetched.</string>
     <string name="export_option_points_and_tags">Save points and tags</string>

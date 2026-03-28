@@ -71,6 +71,7 @@ fun MapDownloadScreen(
     var isDownloading by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf(context.getString(R.string.map_download_status_idle)) }
     var showHelp by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val initialDownloadThreads = remember {
         Configuration.getInstance().tileDownloadThreads.toInt()
@@ -105,8 +106,14 @@ fun MapDownloadScreen(
         }
     }
 
+    val currentBbox = remember { mutableStateOf<BoundingBox?>(null) }
+    
     BackHandler {
-        onBack()
+        if (isDownloading) {
+            showCancelDialog = true
+        } else {
+            onBack()
+        }
     }
 
     Scaffold(
@@ -223,6 +230,7 @@ fun MapDownloadScreen(
                             Toast.makeText(context, context.getString(R.string.toast_map_not_ready), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
+                        currentBbox.value = bbox
                         val cacheManager = CacheManager(map)
                         cacheManagerRef = cacheManager
                         val desiredThreads = if (useMultiThreadDownload) {
@@ -308,15 +316,7 @@ fun MapDownloadScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = {
-                        try {
-                            cacheManagerRef?.cancelAllJobs()
-                            cacheManagerRef = null
-                        } catch (e: Exception) {
-                            // Ignore missing method or other errors
-                        }
-                        isDownloading = false
-                        statusText = context.getString(R.string.map_download_status_idle)
-                        Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                        showCancelDialog = true
                     }
                 ) {
                     Text(text = stringResource(R.string.action_cancel))
@@ -330,6 +330,57 @@ fun MapDownloadScreen(
                 Text(text = stringResource(R.string.action_back))
             }
         }
+    }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text(stringResource(R.string.map_download_cancel_title)) },
+            text = { Text(stringResource(R.string.map_download_cancel_message)) },
+            confirmButton = {
+                Button(onClick = {
+                    showCancelDialog = false
+                    try {
+                        cacheManagerRef?.cancelAllJobs()
+                        cacheManagerRef = null
+                    } catch (e: Exception) {
+                    }
+                    val bbox = currentBbox.value
+                    if (bbox != null) {
+                        onAreaDownloaded(
+                            DownloadedArea(
+                                north = bbox.latNorth,
+                                south = bbox.latSouth,
+                                east = bbox.lonEast,
+                                west = bbox.lonWest,
+                                minZoom = minZoom,
+                                maxZoom = maxZoom
+                            )
+                        )
+                    }
+                    isDownloading = false
+                    statusText = context.getString(R.string.map_download_status_idle)
+                    Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                }) {
+                    Text(stringResource(R.string.map_download_cancel_keep))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = {
+                    showCancelDialog = false
+                    try {
+                        cacheManagerRef?.cancelAllJobs()
+                        cacheManagerRef = null
+                    } catch (e: Exception) {
+                    }
+                    isDownloading = false
+                    statusText = context.getString(R.string.map_download_status_idle)
+                    Configuration.getInstance().setTileDownloadThreads(initialDownloadThreads.toShort())
+                }) {
+                    Text(stringResource(R.string.map_download_cancel_abandon))
+                }
+            }
+        )
     }
 
     if (showHelp) {
