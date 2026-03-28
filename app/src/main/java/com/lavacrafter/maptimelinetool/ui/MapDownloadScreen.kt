@@ -66,7 +66,8 @@ fun MapDownloadScreen(
     onAreaDownloaded: (DownloadedArea) -> Unit,
     tileSource: DownloadTileSource,
     useMultiThreadDownload: Boolean,
-    downloadThreadCount: Int
+    downloadThreadCount: Int,
+    downloadedOnly: Boolean
 ) {
     val context = LocalContext.current
     var mapView: MapView? by remember { mutableStateOf(null) }
@@ -171,7 +172,8 @@ fun MapDownloadScreen(
                             setTileSource(tileSource.toOsmdroidSource(viewContext))
                             setMultiTouchControls(true)
                             setBuiltInZoomControls(false)
-                            setUseDataConnection(true)
+                            setUseDataConnection(!downloadedOnly)
+                            tileProvider.setUseDataConnection(!downloadedOnly)
                             controller.setZoom(12.0)
                             setOnTouchListener { v, _ ->
                                 v.parent?.requestDisallowInterceptTouchEvent(true)
@@ -181,6 +183,8 @@ fun MapDownloadScreen(
                         }
                     },
                     update = { map ->
+                        map.setUseDataConnection(!downloadedOnly)
+                        map.tileProvider.setUseDataConnection(!downloadedOnly)
                         map.setTileSource(tileSource.toOsmdroidSource(context))
                         mapView = map
                     }

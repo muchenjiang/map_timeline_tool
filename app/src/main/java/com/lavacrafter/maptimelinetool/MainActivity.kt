@@ -886,7 +886,12 @@ class MainActivity : AppCompatActivity() {
                                     },
                                     tileSource = downloadTileSource,
                                     useMultiThreadDownload = settingsState.downloadMultiThreadEnabled,
-                                    downloadThreadCount = settingsState.downloadThreadCount
+                                    downloadThreadCount = settingsState.downloadThreadCount,
+                                    downloadedOnly = run {
+                                        val isSatellite = downloadTileSource.id.contains("satellite", true) || downloadTileSource.id.contains("eox", true)
+                                        val policy = if (isSatellite) settingsState.satelliteCachePolicy else settingsState.cachePolicy
+                                        policy == MapCachePolicy.DISABLED || (policy == MapCachePolicy.WIFI_ONLY && networkStatus != NetworkStatus.WIFI)
+                                    }
                                 )
                             } else {
                                 SettingsScreen(
