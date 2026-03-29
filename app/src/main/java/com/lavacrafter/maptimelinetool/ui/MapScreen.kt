@@ -42,9 +42,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.PointEntity
 import kotlinx.coroutines.delay
+import org.osmdroid.tileprovider.MapTileProviderBasic
+import org.osmdroid.tileprovider.modules.IFilesystemCache
+import org.osmdroid.tileprovider.modules.INetworkAvailablityCheck
+import org.osmdroid.tileprovider.modules.NetworkAvailabliltyCheck
+import org.osmdroid.tileprovider.modules.SqlTileWriter
+import org.osmdroid.tileprovider.tilesource.ITileSource
+import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -54,6 +62,7 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.infowindow.InfoWindow
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -153,20 +162,39 @@ fun MapScreen(
     var lastOverlaySignature by remember { mutableStateOf<List<Long>>(emptyList()) }
     var overlaysReady by remember { mutableStateOf(false) }
     var hasAutoCentered by remember { mutableStateOf(false) }
+    var policyNetworkCheck by remember { mutableStateOf<PolicyAwareNetworkCheck?>(null) }
+    var policyFilesystemCache by remember { mutableStateOf<PolicyAwareFilesystemCache?>(null) }
+    var previousDownloadedOnly by remember { mutableStateOf(downloadedOnly) }
 
     Box {
         AndroidView(
             factory = { viewContext ->
-                MapView(viewContext).apply {
+                val source = mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext)
+                val networkCheck = PolicyAwareNetworkCheck(viewContext).apply {
+                    allowNetwork = !downloadedOnly
+                }
+                val filesystemCache = PolicyAwareFilesystemCache(SqlTileWriter()).apply {
+                    allowWrites = !downloadedOnly
+                }
+                val provider = MapTileProviderBasic(
+                    SimpleRegisterReceiver(viewContext),
+                    networkCheck,
+                    source,
+                    viewContext,
+                    filesystemCache
+                )
+                MapView(viewContext, provider).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    setTileSource(source)
+                    // setUseDataConnection must be applied after setTileSource, otherwise the
+                    // provider created by setTileSource may reset network behavior.
                     setUseDataConnection(!downloadedOnly)
                     tileProvider.setUseDataConnection(!downloadedOnly)
-                    setTileSource(mapTileSourceById(mapTileSourceId).toOsmdroidSource(viewContext))
                     setMultiTouchControls(true)
-                    setBuiltInZoomControls(false)
+                    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
                     controller.setZoom(16.0)
                     if (points.isNotEmpty()) {
                         val last = points.first()
@@ -184,21 +212,32 @@ fun MapScreen(
                         }
                     })
                     onResume()
+                    policyNetworkCheck = networkCheck
+                    policyFilesystemCache = filesystemCache
                     mapView = this
                 }
             },
             onRelease = { map ->
                 map.onPause()
                 map.onDetach()
+                policyNetworkCheck = null
+                policyFilesystemCache = null
             },
             update = { map ->
                 val targetSource = mapTileSourceById(mapTileSourceId).toOsmdroidSource(context)
                 if (map.tileProvider.tileSource.name() != targetSource.name()) {
                     map.setTileSource(targetSource)
                 }
+                policyNetworkCheck?.allowNetwork = !downloadedOnly
+                policyFilesystemCache?.allowWrites = !downloadedOnly
                 // Important: setUseDataConnection must be called after setTileSource to ensure the internal provider respects it.
                 map.setUseDataConnection(!downloadedOnly)
                 map.tileProvider.setUseDataConnection(!downloadedOnly)
+                if (!previousDownloadedOnly && downloadedOnly) {
+                    // Drop in-memory tiles captured while online so the no-network behavior is visible immediately.
+                    map.tileProvider.clearTileCache()
+                }
+                previousDownloadedOnly = downloadedOnly
 
                 if (!hasAutoCentered) {
                     if (points.isNotEmpty()) {
@@ -397,6 +436,70 @@ private fun createCounterIcon(
         canvas.drawText(text, size / 2f, y, textPaint)
     }
     return android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
+}
+
+private class PolicyAwareNetworkCheck(context: android.content.Context) : INetworkAvailablityCheck {
+    private val delegate = NetworkAvailabliltyCheck(context)
+
+    @Volatile
+    var allowNetwork: Boolean = true
+
+    override fun getNetworkAvailable(): Boolean {
+        return allowNetwork && delegate.getNetworkAvailable()
+    }
+
+    override fun getWiFiNetworkAvailable(): Boolean {
+        return allowNetwork && delegate.getWiFiNetworkAvailable()
+    }
+
+    override fun getCellularDataNetworkAvailable(): Boolean {
+        return allowNetwork && delegate.getCellularDataNetworkAvailable()
+    }
+
+    @Deprecated("Deprecated by osmdroid INetworkAvailablityCheck; kept for interface compatibility.")
+    @Suppress("DEPRECATION")
+    override fun getRouteToPathExists(hostAddress: Int): Boolean {
+        return allowNetwork && delegate.getRouteToPathExists(hostAddress)
+    }
+}
+
+private class PolicyAwareFilesystemCache(
+    private val delegate: IFilesystemCache
+) : IFilesystemCache {
+    @Volatile
+    var allowWrites: Boolean = true
+
+    override fun saveFile(
+        pTileSource: ITileSource,
+        pMapTileIndex: Long,
+        pStream: InputStream,
+        pExpirationTime: Long?
+    ): Boolean {
+        if (!allowWrites) {
+            return false
+        }
+        return delegate.saveFile(pTileSource, pMapTileIndex, pStream, pExpirationTime)
+    }
+
+    override fun exists(pTileSource: ITileSource, pMapTileIndex: Long): Boolean {
+        return delegate.exists(pTileSource, pMapTileIndex)
+    }
+
+    override fun onDetach() {
+        delegate.onDetach()
+    }
+
+    override fun remove(pTileSource: ITileSource, pMapTileIndex: Long): Boolean {
+        return delegate.remove(pTileSource, pMapTileIndex)
+    }
+
+    override fun getExpirationTimestamp(pTileSource: ITileSource, pMapTileIndex: Long): Long? {
+        return delegate.getExpirationTimestamp(pTileSource, pMapTileIndex)
+    }
+
+    override fun loadTile(pTileSource: ITileSource, pMapTileIndex: Long): android.graphics.drawable.Drawable? {
+        return delegate.loadTile(pTileSource, pMapTileIndex)
+    }
 }
 
 private val SPECTRUM_COLORS = listOf(

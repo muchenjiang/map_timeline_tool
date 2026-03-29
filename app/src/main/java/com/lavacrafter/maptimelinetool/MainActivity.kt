@@ -106,6 +106,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.modules.SqlTileWriter
 
 private suspend fun buildPointTagNameMap(
     viewModel: AppViewModel,
@@ -967,9 +968,39 @@ class MainActivity : AppCompatActivity() {
                                         if (settingsState.downloadedAreas.isNotEmpty()) {
                                             Toast.makeText(context, context.getString(R.string.toast_cache_skip_downloaded), Toast.LENGTH_SHORT).show()
                                         } else {
-                                            val cacheDir = Configuration.getInstance().osmdroidTileCache
-                                            runCatching { cacheDir?.deleteRecursively() }
-                                            Toast.makeText(context, context.getString(R.string.toast_cache_cleared), Toast.LENGTH_SHORT).show()
+                                            val config = Configuration.getInstance()
+                                            val cacheDirs = buildList {
+                                                config.osmdroidTileCache?.let { add(it) }
+                                                config.osmdroidBasePath?.let { basePath ->
+                                                    val legacyTilesDir = java.io.File(basePath, "tiles")
+                                                    add(legacyTilesDir)
+                                                }
+                                            }.distinctBy { it.absolutePath }
+
+                                            val purgedByWriter = runCatching {
+                                                SqlTileWriter().purgeCache()
+                                            }.getOrDefault(false)
+
+                                            val deleted = runCatching {
+                                                cacheDirs.all { dir ->
+                                                    if (!dir.exists()) true else dir.deleteRecursively()
+                                                }
+                                            }.getOrDefault(false)
+
+                                            val recreated = if (deleted) {
+                                                runCatching {
+                                                    cacheDirs.all { dir -> dir.mkdirs() || dir.exists() }
+                                                }.getOrDefault(false)
+                                            } else {
+                                                false
+                                            }
+
+                                            val messageRes = if (purgedByWriter && deleted && recreated) {
+                                                R.string.toast_cache_cleared
+                                            } else {
+                                                R.string.toast_cache_clear_failed
+                                            }
+                                            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
                                         }
                                     },
                                     onOpenAbout = { showAbout = true },
@@ -1165,7 +1196,7 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 } else {
                                     val persistedPhotoPath = preparePhotoPathForPersist(addPhotoPath)
-                                    viewModel.addPointWithTags(title, note, loc, createdAt, selectedTags, persistedPhotoPath)
+                                    viewModel.addPointWithTags(title.trim(), note.trim(), loc, createdAt, selectedTags, persistedPhotoPath)
                                     vibrateOnce(context)
                                     Toast.makeText(context, context.getString(R.string.toast_point_added), Toast.LENGTH_SHORT).show()
                                 }
