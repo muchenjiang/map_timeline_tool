@@ -274,6 +274,11 @@ h1 {
     background: rgba(255, 255, 255, 0.75);
 }
 
+.btn.testing {
+    color: #ffffff;
+    background: linear-gradient(130deg, var(--blue), #2ba5df);
+}
+
 .hero-art {
     display: flex;
     justify-content: center;
@@ -369,6 +374,44 @@ h1 {
     padding-left: 18px;
 }
 
+#closed-testing {
+    background: linear-gradient(135deg, rgba(15, 121, 185, 0.08), rgba(94, 165, 0, 0.08), #ffffff);
+}
+
+.closed-testing-intro {
+    margin-top: 0;
+    color: var(--ink-soft);
+}
+
+.closed-testing-steps {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.closed-testing-steps li + li {
+    margin-top: 14px;
+}
+
+.closed-testing-steps h3 {
+    margin: 0 0 8px;
+    font-size: 1.04rem;
+}
+
+.closed-testing-steps p {
+    margin: 0 0 6px;
+    color: var(--ink-soft);
+}
+
+.closed-testing-note {
+    margin-top: 18px;
+    color: var(--ink-soft);
+}
+
+.closed-testing-sign {
+    margin-bottom: 0;
+    font-weight: 700;
+}
+
 html[dir="rtl"] body {
     font-family: "Noto Sans Arabic", "Noto Sans SC", "Segoe UI", sans-serif;
 }
@@ -396,6 +439,11 @@ html[dir="rtl"] .link-list {
 }
 
 html[dir="rtl"] .detail-list {
+    padding-left: 0;
+    padding-right: 20px;
+}
+
+html[dir="rtl"] .closed-testing-steps {
     padding-left: 0;
     padding-right: 20px;
 }
