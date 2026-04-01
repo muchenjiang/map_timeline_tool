@@ -17,6 +17,8 @@ import org.osmdroid.views.overlay.mylocation.IMyLocationProvider
 
 class HeadingLocationOverlay(private val context: Context) : Overlay(), IMyLocationConsumer, IOrientationConsumer {
     var location: Location? = null
+    @Volatile
+    var invalidateMap: (() -> Unit)? = null
     private var bearing: Float = 0f
     private val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#2196F3")
@@ -42,11 +44,13 @@ class HeadingLocationOverlay(private val context: Context) : Overlay(), IMyLocat
                 editor.remove(KEY_ACCURACY)
             }
             editor.apply()
+            invalidateMap?.invoke()
         }
     }
 
     override fun onOrientationChanged(orientation: Float, provider: IOrientationProvider?) {
         bearing = orientation
+        invalidateMap?.invoke()
     }
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {

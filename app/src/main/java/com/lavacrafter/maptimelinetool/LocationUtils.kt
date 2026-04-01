@@ -13,15 +13,17 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object LocationUtils {
-    private const val MAX_POINT_ACCURACY_METERS = 20f
+    private const val MAX_POINT_ACCURACY_METERS = 30f
     private const val MAX_POINT_LOCATION_AGE_MS = 15_000L
+    private const val MAX_LAST_KNOWN_LOCATION_AGE_MS = 120_000L
+    private const val MAX_LAST_KNOWN_ACCURACY_METERS = 50f
     private const val CACHED_PROVIDER = "cached_overlay"
 
     @SuppressLint("MissingPermission")
     fun getLastKnownLocation(
         context: Context,
-        maxAgeMs: Long = MAX_POINT_LOCATION_AGE_MS,
-        maxAccuracyMeters: Float = MAX_POINT_ACCURACY_METERS
+        maxAgeMs: Long = MAX_LAST_KNOWN_LOCATION_AGE_MS,
+        maxAccuracyMeters: Float = MAX_LAST_KNOWN_ACCURACY_METERS
     ): Location? {
         val lm = context.getSystemService(LocationManager::class.java)
         val systemCandidates = lm?.let { locationManager ->
@@ -79,10 +81,10 @@ object LocationUtils {
     suspend fun getBestEffortLocation(
         context: Context,
         timeoutMs: Long,
-        maxAgeMs: Long = MAX_POINT_LOCATION_AGE_MS,
-        maxAccuracyMeters: Float = MAX_POINT_ACCURACY_METERS
+        maxAgeMs: Long = MAX_LAST_KNOWN_LOCATION_AGE_MS,
+        maxAccuracyMeters: Float = MAX_LAST_KNOWN_ACCURACY_METERS
     ): Location? {
-        return getFreshLocation(context, timeoutMs, maxAgeMs, maxAccuracyMeters)
+        return getFreshLocation(context, timeoutMs, MAX_POINT_LOCATION_AGE_MS, MAX_POINT_ACCURACY_METERS)
             ?: getLastKnownLocation(context, maxAgeMs, maxAccuracyMeters)
     }
 
@@ -122,9 +124,9 @@ object LocationUtils {
     }
 
     private fun pickSingleUpdateProvider(providers: List<String>): String? {
-        return providers.firstOrNull { it == LocationManager.GPS_PROVIDER }
+        return providers.firstOrNull { it == LocationManager.FUSED_PROVIDER }
+            ?: providers.firstOrNull { it == LocationManager.GPS_PROVIDER }
             ?: providers.firstOrNull { it == LocationManager.NETWORK_PROVIDER }
-            ?: providers.firstOrNull { it == LocationManager.FUSED_PROVIDER }
             ?: providers.firstOrNull { it != LocationManager.PASSIVE_PROVIDER }
     }
 
@@ -172,8 +174,8 @@ object LocationUtils {
         val ageMs = (nowMs - location.time).coerceAtLeast(0L).toDouble()
         val recencyScore = 1_000.0 - (ageMs / 1000.0)
         val providerScore = when (location.provider) {
+            LocationManager.FUSED_PROVIDER -> 35.0
             LocationManager.GPS_PROVIDER -> 30.0
-            LocationManager.FUSED_PROVIDER -> 25.0
             LocationManager.NETWORK_PROVIDER -> 20.0
             CACHED_PROVIDER -> 15.0
             else -> 10.0

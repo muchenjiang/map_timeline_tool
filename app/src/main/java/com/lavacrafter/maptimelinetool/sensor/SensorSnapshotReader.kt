@@ -24,7 +24,11 @@ data class SensorSnapshot(
     val magnetometerZ: Float? = null
 )
 
-suspend fun captureSensorSnapshot(context: Context, timeoutMs: Long = 1500L): SensorSnapshot =
+suspend fun captureSensorSnapshot(
+    context: Context,
+    timeoutMs: Long = 1500L,
+    requestedSensorTypes: Set<Int>? = null
+): SensorSnapshot =
     suspendCancellableCoroutine { continuation ->
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         if (sensorManager == null) {
@@ -32,12 +36,25 @@ suspend fun captureSensorSnapshot(context: Context, timeoutMs: Long = 1500L): Se
             return@suspendCancellableCoroutine
         }
 
+        val activeSensorTypes = requestedSensorTypes ?: setOf(
+            Sensor.TYPE_PRESSURE,
+            Sensor.TYPE_LIGHT,
+            Sensor.TYPE_ACCELEROMETER,
+            Sensor.TYPE_GYROSCOPE,
+            Sensor.TYPE_MAGNETIC_FIELD
+        )
+
+        if (activeSensorTypes.isEmpty()) {
+            continuation.resume(SensorSnapshot())
+            return@suspendCancellableCoroutine
+        }
+
         val sensors = listOfNotNull(
-            sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE)?.let { Sensor.TYPE_PRESSURE to it },
-            sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)?.let { Sensor.TYPE_LIGHT to it },
-            sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { Sensor.TYPE_ACCELEROMETER to it },
-            sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.let { Sensor.TYPE_GYROSCOPE to it },
-            sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let { Sensor.TYPE_MAGNETIC_FIELD to it }
+            if (Sensor.TYPE_PRESSURE in activeSensorTypes) sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE)?.let { Sensor.TYPE_PRESSURE to it } else null,
+            if (Sensor.TYPE_LIGHT in activeSensorTypes) sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)?.let { Sensor.TYPE_LIGHT to it } else null,
+            if (Sensor.TYPE_ACCELEROMETER in activeSensorTypes) sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { Sensor.TYPE_ACCELEROMETER to it } else null,
+            if (Sensor.TYPE_GYROSCOPE in activeSensorTypes) sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.let { Sensor.TYPE_GYROSCOPE to it } else null,
+            if (Sensor.TYPE_MAGNETIC_FIELD in activeSensorTypes) sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let { Sensor.TYPE_MAGNETIC_FIELD to it } else null
         )
 
         if (sensors.isEmpty()) {
@@ -108,7 +125,7 @@ suspend fun captureSensorSnapshot(context: Context, timeoutMs: Long = 1500L): Se
             val registered = sensorManager.registerListener(
                 listener,
                 sensor,
-                SensorManager.SENSOR_DELAY_FASTEST,
+                SensorManager.SENSOR_DELAY_GAME,
                 callbackHandler
             )
             if (registered) {

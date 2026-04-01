@@ -20,13 +20,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val QUICK_ADD_LOCATION_TIMEOUT_MS = 5_000L
+
 class QuickAddReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val graph = context.appGraph()
-                val location = graph.locationProvider.getBestEffortLocation(12000L)
+                val location = graph.locationProvider.getBestEffortLocation(QUICK_ADD_LOCATION_TIMEOUT_MS)
                     ?: run {
                         showToast(context, context.getString(R.string.toast_location_failed))
                         return@launch
@@ -45,9 +47,6 @@ class QuickAddReceiver : BroadcastReceiver() {
                     timestamp = timestamp,
                     tagIds = graph.settingsManagementUseCase.getDefaultTagIds().toSet()
                 )
-                if (graph.settingsManagementUseCase.getNoiseEnabled()) {
-                    kotlinx.coroutines.delay(3500L)
-                }
                 showToast(context, context.getString(R.string.toast_point_added))
                 vibrateOnce(context)
                 showAddNotification(context)
@@ -80,11 +79,13 @@ private fun showAddNotification(context: Context) {
 
     val notification = NotificationCompat.Builder(context, channelId)
         .setSmallIcon(R.drawable.ic_notification)
-        .setContentTitle(context.getString(R.string.toast_point_added))
+        .setContentTitle(context.getString(R.string.notification_title))
         .setContentText(context.getString(R.string.toast_point_added))
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setPriority(NotificationCompat.PRIORITY_LOW)
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setAutoCancel(true)
+        .setOnlyAlertOnce(true)
+        .setSilent(true)
         .setTimeoutAfter(2000L)
         .build()
 

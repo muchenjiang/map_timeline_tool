@@ -163,7 +163,7 @@ class AppViewModel(
         autoAddJob = viewModelScope.launch {
             kotlinx.coroutines.delay(timeoutSeconds * 1000L)
             val timestamp = createdAt
-            val location = getBestEffortLocation(12000L)
+            val location = getBestEffortLocation(5_000L)
             if (location != null) {
                 val normalizedTimestamp = normalizeTimestamp(timestamp, location)
                 val title = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(normalizedTimestamp))

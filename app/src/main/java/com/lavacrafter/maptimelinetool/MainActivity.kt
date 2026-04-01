@@ -449,7 +449,7 @@ class MainActivity : AppCompatActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
                     }
-                    startService(Intent(context, QuickAddService::class.java))
+                    ContextCompat.startForegroundService(context, Intent(context, QuickAddService::class.java))
                 }
 
                 LaunchedEffect(settingsState.cachePolicy, settingsState.satelliteCachePolicy, settingsState.mapTileSourceId, networkStatus) {
