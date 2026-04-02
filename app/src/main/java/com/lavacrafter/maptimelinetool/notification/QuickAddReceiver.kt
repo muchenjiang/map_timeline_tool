@@ -21,6 +21,7 @@ import java.util.Date
 import java.util.Locale
 
 private const val QUICK_ADD_LOCATION_TIMEOUT_MS = 5_000L
+private const val QUICK_ADD_RESULT_CHANNEL_ID = "quick_add_result_channel_v2"
 
 class QuickAddReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -64,12 +65,12 @@ private fun showToast(context: Context, message: String) {
 }
 
 private fun showAddNotification(context: Context) {
-    val channelId = "quick_add_result_channel"
+    val channelId = QUICK_ADD_RESULT_CHANNEL_ID
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val channel = android.app.NotificationChannel(
             channelId,
             context.getString(R.string.notification_channel_name),
-            android.app.NotificationManager.IMPORTANCE_HIGH
+            android.app.NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = context.getString(R.string.notification_channel_desc)
         }
