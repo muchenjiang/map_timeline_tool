@@ -23,6 +23,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Point
 import android.location.Location
+import com.lavacrafter.maptimelinetool.LocationUtils
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
@@ -48,18 +49,7 @@ class HeadingLocationOverlay(private val context: Context) : Overlay(), IMyLocat
     override fun onLocationChanged(location: Location?, provider: IMyLocationProvider?) {
         if (location != null) {
             this.location = location
-            val editor = context.getSharedPreferences(LOCATION_PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putFloat(KEY_LAT, location.latitude.toFloat())
-                .putFloat(KEY_LON, location.longitude.toFloat())
-                .putLong(KEY_TIME, location.time)
-                .putString(KEY_PROVIDER, location.provider)
-            if (location.hasAccuracy()) {
-                editor.putFloat(KEY_ACCURACY, location.accuracy)
-            } else {
-                editor.remove(KEY_ACCURACY)
-            }
-            editor.apply()
+            LocationUtils.cacheLocation(context, location)
             invalidateMap?.invoke()
         }
     }

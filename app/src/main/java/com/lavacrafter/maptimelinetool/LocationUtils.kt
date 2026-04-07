@@ -29,10 +29,12 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object LocationUtils {
-    private const val MAX_POINT_ACCURACY_METERS = 30f
+    private const val MAX_POINT_ACCURACY_METERS = 100f
     private const val MAX_POINT_LOCATION_AGE_MS = 15_000L
-    private const val MAX_LAST_KNOWN_LOCATION_AGE_MS = 120_000L
-    private const val MAX_LAST_KNOWN_ACCURACY_METERS = 50f
+    private const val MAX_LAST_KNOWN_LOCATION_AGE_MS = 3_600_000L
+    private const val MAX_LAST_KNOWN_ACCURACY_METERS = 150f
+    private const val MAX_STALE_LAST_KNOWN_LOCATION_AGE_MS = 24 * 60 * 60 * 1000L
+    private const val MAX_STALE_LAST_KNOWN_ACCURACY_METERS = 300f
     private const val CACHED_PROVIDER = "cached_overlay"
 
     @SuppressLint("MissingPermission")
@@ -51,7 +53,27 @@ object LocationUtils {
         }.orEmpty()
 
         val cached = readCachedLocation(context)
-        return pickBestLocation(systemCandidates + listOfNotNull(cached), maxAgeMs, maxAccuracyMeters)
+        val best = pickBestLocation(systemCandidates + listOfNotNull(cached), maxAgeMs, maxAccuracyMeters)
+        if (best != null) {
+            cacheLocation(context, best)
+        }
+        return best
+    }
+
+    fun cacheLocation(context: Context, location: Location) {
+        val editor = context.getSharedPreferences(HeadingLocationOverlay.LOCATION_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putFloat(HeadingLocationOverlay.KEY_LAT, location.latitude.toFloat())
+            .putFloat(HeadingLocationOverlay.KEY_LON, location.longitude.toFloat())
+            .putLong(HeadingLocationOverlay.KEY_TIME, location.time)
+            .putString(HeadingLocationOverlay.KEY_PROVIDER, location.provider)
+
+        if (location.hasAccuracy()) {
+            editor.putFloat(HeadingLocationOverlay.KEY_ACCURACY, location.accuracy)
+        } else {
+            editor.remove(HeadingLocationOverlay.KEY_ACCURACY)
+        }
+        editor.apply()
     }
 
     private fun readCachedLocation(context: Context): Location? {
@@ -91,7 +113,7 @@ object LocationUtils {
 
         return fresh.takeIf {
             isLocationAcceptable(it, System.currentTimeMillis(), maxAgeMs, maxAccuracyMeters)
-        }
+        }?.also { cacheLocation(context, it) }
     }
 
     suspend fun getBestEffortLocation(
@@ -100,8 +122,13 @@ object LocationUtils {
         maxAgeMs: Long = MAX_LAST_KNOWN_LOCATION_AGE_MS,
         maxAccuracyMeters: Float = MAX_LAST_KNOWN_ACCURACY_METERS
     ): Location? {
-        return getFreshLocation(context, timeoutMs, MAX_POINT_LOCATION_AGE_MS, MAX_POINT_ACCURACY_METERS)
-            ?: getLastKnownLocation(context, maxAgeMs, maxAccuracyMeters)
+        return getLastKnownLocation(context, maxAgeMs, maxAccuracyMeters)
+            ?: getFreshLocation(context, timeoutMs, MAX_POINT_LOCATION_AGE_MS, MAX_POINT_ACCURACY_METERS)
+            ?: getLastKnownLocation(
+                context,
+                MAX_STALE_LAST_KNOWN_LOCATION_AGE_MS,
+                MAX_STALE_LAST_KNOWN_ACCURACY_METERS
+            )
     }
 
     @SuppressLint("MissingPermission")

@@ -44,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +60,7 @@ import com.lavacrafter.maptimelinetool.LocationUtils
 import com.lavacrafter.maptimelinetool.R
 import com.lavacrafter.maptimelinetool.data.PointEntity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.osmdroid.tileprovider.MapTileProviderBasic
 import org.osmdroid.tileprovider.modules.IFilesystemCache
 import org.osmdroid.tileprovider.modules.INetworkAvailablityCheck
@@ -100,6 +102,7 @@ fun MapScreen(
     val context = LocalContext.current
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     var mapView: MapView? by remember { mutableStateOf(null) }
     val locationProvider = remember {
         GpsMyLocationProvider(context).apply {
@@ -352,16 +355,14 @@ fun MapScreen(
                 .padding(16.dp),
             onClick = {
                 val map = mapView ?: return@FloatingActionButton
-                val cached = LocationUtils.getLastKnownLocation(context)
-                if (cached == null) {
-                    Toast.makeText(context, context.getString(R.string.toast_location_loading), Toast.LENGTH_SHORT).show()
-                }
-                val targetLocation = cached?.let { GeoPoint(it.latitude, it.longitude) }
-                val targetPoint = selectedPointId?.let { id -> points.find { it.id == id } } ?: points.firstOrNull()
-                val target = targetLocation ?: targetPoint?.let { GeoPoint(it.latitude, it.longitude) }
-                target?.let {
-                    map.controller.setZoom(16.0)
-                    map.controller.setCenter(it)
+                        scope.launch {
+                            val location = LocationUtils.getBestEffortLocation(context, 5_000L)
+                            if (location == null) {
+                                Toast.makeText(context, context.getString(R.string.toast_location_failed), Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+                            map.controller.setZoom(16.0)
+                            map.controller.setCenter(GeoPoint(location.latitude, location.longitude))
                 }
             }
         ) {
